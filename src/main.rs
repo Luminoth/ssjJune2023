@@ -1,14 +1,14 @@
 // https://github.com/bevyengine/bevy/blob/main/examples/games/game_menu.rs
 
-use bevy::prelude::*;
-
 mod components;
 mod plugins;
 mod resources;
 mod states;
 mod systems;
 
-use plugins::*;
+use bevy::prelude::*;
+
+use plugins::splash::*;
 use states::*;
 
 /*fn setup(mut commands: Commands) {
@@ -26,7 +26,7 @@ fn main() {
         }))
         .add_plugin(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
         //.add_plugin(bevy::diagnostic::LogDiagnosticsPlugin::default())
-        .add_plugin(HelloPlugin)
+        .add_plugin(SplashPlugin)
         .add_state::<GameState>()
         /*.insert_resource(ClearColor(Color::BLACK))
         .add_startup_system(setup)*/
