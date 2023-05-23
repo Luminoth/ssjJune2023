@@ -19,15 +19,15 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
-                title: "Hello World!".into(),
+                title: "ssjJune2023".into(),
                 ..default()
             }),
             ..default()
         }))
         .add_plugin(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
         //.add_plugin(bevy::diagnostic::LogDiagnosticsPlugin::default())
-        .add_plugin(SplashPlugin)
         .add_state::<GameState>()
+        .add_plugin(SplashPlugin)
         /*.insert_resource(ClearColor(Color::BLACK))
         .add_startup_system(setup)*/
         .run();

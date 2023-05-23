@@ -5,7 +5,9 @@ use crate::resources::splash::*;
 use crate::states::GameState;
 
 pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let icon = asset_server.load("branding/icon.png");
+    info!("Entering Splash state");
+
+    let icon = asset_server.load("splash.png");
 
     commands
         .spawn((
@@ -13,7 +15,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 style: Style {
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::Center,
-                    width: Val::Percent(100.0),
+                    size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
                     ..default()
                 },
                 ..default()
@@ -23,8 +25,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         .with_children(|parent| {
             parent.spawn(ImageBundle {
                 style: Style {
-                    // This will set the logo to be 200px wide, and auto adjust its height
-                    width: Val::Px(200.0),
+                    size: Size::new(Val::Px(200.0), Val::Auto),
                     ..default()
                 },
                 image: UiImage::new(icon),
@@ -32,10 +33,12 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             });
         });
 
-    commands.insert_resource(SplashTimer(Timer::from_seconds(1.0, TimerMode::Once)));
+    commands.insert_resource(SplashTimer(Timer::from_seconds(5.0, TimerMode::Once)));
 }
 
 pub fn teardown(to_despawn: Query<Entity, With<OnSplashScreen>>, mut commands: Commands) {
+    info!("Exiting Splash state");
+
     for entity in &to_despawn {
         commands.entity(entity).despawn_recursive();
     }
