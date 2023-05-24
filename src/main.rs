@@ -1,4 +1,4 @@
-// https://github.com/bevyengine/bevy/blob/main/examples/games/game_menu.rs
+// https://github.com/bevyengine/bevy/blob/v0.10.0/examples/games/game_menu.rs
 
 mod components;
 mod plugins;
