@@ -1,13 +1,11 @@
-#![cfg(feature = "server")]
-
 use bevy::prelude::*;
 use bevy_tokio_tasks::*;
 use futures_lite::future;
 
-use crate::components::looking_for_work::*;
+use crate::components::server::looking_for_work::*;
 use crate::cooldown::Cooldown;
-use crate::plugins::looking_for_work::*;
-use crate::resources::{looking_for_work::*, server::*, Random};
+use crate::plugins::server::looking_for_work::*;
+use crate::resources::{server::looking_for_work::*, server::*, Random};
 use crate::states::GameState;
 
 pub fn setup(
@@ -106,6 +104,7 @@ pub fn wait_for_queue_url(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn look_for_work(
     mut commands: Commands,
     client: Res<SqsClient>,

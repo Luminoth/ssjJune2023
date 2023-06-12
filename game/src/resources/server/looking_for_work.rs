@@ -1,5 +1,3 @@
-#![cfg(feature = "server")]
-
 use bevy::prelude::*;
 
 use crate::cooldown::Cooldown;

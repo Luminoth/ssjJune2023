@@ -1,10 +1,8 @@
-#![cfg(feature = "server")]
-
 use bevy::prelude::*;
 use bevy_tokio_tasks::*;
 use futures_lite::future;
 
-use crate::components::init_server::*;
+use crate::components::server::init::*;
 use crate::resources::server::*;
 use crate::states::GameState;
 

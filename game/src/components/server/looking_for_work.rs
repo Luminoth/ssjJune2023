@@ -1,5 +1,3 @@
-#![cfg(feature = "server")]
-
 use aws_sdk_sqs::{
     error::SdkError,
     operation::get_queue_url::{GetQueueUrlError, GetQueueUrlOutput},

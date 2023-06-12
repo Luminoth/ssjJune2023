@@ -1,3 +1,5 @@
+#![deny(warnings)]
+
 use std::net::SocketAddr;
 
 use axum::{routing::get, Router};

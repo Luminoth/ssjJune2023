@@ -1,5 +1,7 @@
 #![cfg(feature = "server")]
 
+pub mod looking_for_work;
+
 use aws_config::SdkConfig;
 use bevy::prelude::*;
 

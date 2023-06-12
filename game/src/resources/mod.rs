@@ -1,7 +1,5 @@
-pub mod looking_for_work;
-pub mod main_menu;
+pub mod client;
 pub mod server;
-pub mod splash;
 
 use bevy::prelude::*;
 use rand::distributions::uniform::{SampleRange, SampleUniform};

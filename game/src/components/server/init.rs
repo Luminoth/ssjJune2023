@@ -1,5 +1,3 @@
-#![cfg(feature = "server")]
-
 use aws_config::SdkConfig;
 use bevy::prelude::*;
 use tokio::task;

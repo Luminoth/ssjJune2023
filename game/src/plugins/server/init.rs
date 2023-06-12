@@ -1,9 +1,7 @@
-#![cfg(feature = "server")]
-
 use bevy::prelude::*;
 
 use crate::states::GameState;
-use crate::systems::init_server::*;
+use crate::systems::server::init::*;
 
 pub struct InitServerPlugin;
 

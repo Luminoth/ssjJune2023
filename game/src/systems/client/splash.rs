@@ -1,9 +1,7 @@
-#![cfg(feature = "client")]
-
 use bevy::prelude::*;
 
-use crate::components::splash::*;
-use crate::resources::splash::*;
+use crate::components::client::splash::*;
+use crate::resources::client::splash::*;
 use crate::states::GameState;
 
 pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {

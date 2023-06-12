@@ -1,9 +1,7 @@
-#![cfg(feature = "client")]
-
 use bevy::prelude::*;
 
 use crate::states::GameState;
-use crate::systems::splash::*;
+use crate::systems::client::splash::*;
 
 pub struct SplashPlugin;
 

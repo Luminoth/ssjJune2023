@@ -1,3 +1,5 @@
+#![deny(warnings)]
+
 // https://github.com/bevyengine/bevy/blob/v0.10.0/examples/games/game_menu.rs
 
 mod components;
@@ -33,7 +35,8 @@ fn main() {
         }))
         //.insert_resource(ClearColor(Color::BLACK))
         .add_plugin(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
-        .add_plugin(plugins::splash::SplashPlugin);
+        .add_plugin(plugins::client::splash::SplashPlugin)
+        .add_plugin(plugins::client::main_menu::MainMenuPlugin);
     }
 
     #[cfg(feature = "server")]
@@ -45,9 +48,9 @@ fn main() {
         .add_plugins(MinimalPlugins)
         .add_plugin(bevy::log::LogPlugin::default())
         .add_plugin(bevy_tokio_tasks::TokioTasksPlugin::default())
-        .add_plugin(plugins::init_server::InitServerPlugin)
-        .add_plugin(plugins::looking_for_work::LookingForWorkPlugin)
-        .add_plugin(plugins::working::WorkingPlugin);
+        .add_plugin(plugins::server::init::InitServerPlugin)
+        .add_plugin(plugins::server::looking_for_work::LookingForWorkPlugin)
+        .add_plugin(plugins::server::working::WorkingPlugin);
     }
 
     app.run();

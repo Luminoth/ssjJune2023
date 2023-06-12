@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use bevy::prelude::*;
 
 use crate::resources::Random;
@@ -29,18 +31,10 @@ impl Cooldown {
     }
 }
 
+#[derive(Default)]
 pub struct Throttle {
     timer: Timer,
     attempts: u32,
-}
-
-impl Default for Throttle {
-    fn default() -> Self {
-        Self {
-            timer: Timer::default(),
-            attempts: 0,
-        }
-    }
 }
 
 impl Throttle {

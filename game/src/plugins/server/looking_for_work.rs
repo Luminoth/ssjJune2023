@@ -1,9 +1,7 @@
-#![cfg(feature = "server")]
-
 use bevy::prelude::*;
 
 use crate::states::GameState;
-use crate::systems::looking_for_work::*;
+use crate::systems::server::looking_for_work::*;
 
 #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
 pub enum LookingForWorkState {
