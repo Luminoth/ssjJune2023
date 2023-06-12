@@ -16,6 +16,7 @@ aws-sdk-sqs = { version = "0.28", optional = true }
 bevy = { version = "0.10", default-features = false }
 bevy-tokio-tasks = { version = "0.10", optional = true }
 futures-lite = { version = "1.13", optional = true }
+rand = "0.8"
 redis = { version = "0.23", optional = true }
 tokio = { version = "1.28", default-features = false, features = [
     "rt",
