@@ -7,7 +7,7 @@ use crate::resources::splash::*;
 use crate::states::GameState;
 
 pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    info!("Entering Splash state");
+    info!("entering Splash state");
 
     let icon = asset_server.load("splash.png");
 
@@ -38,8 +38,8 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(SplashTimer(Timer::from_seconds(5.0, TimerMode::Once)));
 }
 
-pub fn teardown(to_despawn: Query<Entity, With<OnSplashScreen>>, mut commands: Commands) {
-    info!("Exiting Splash state");
+pub fn teardown(mut commands: Commands, to_despawn: Query<Entity, With<OnSplashScreen>>) {
+    info!("exiting Splash state");
 
     for entity in &to_despawn {
         commands.entity(entity).despawn_recursive();

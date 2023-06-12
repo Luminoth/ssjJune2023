@@ -14,9 +14,10 @@ opt-level = 3
 aws-config = { version = "0.55", optional = true }
 aws-sdk-sqs = { version = "0.28", optional = true }
 bevy = { version = "0.10", default-features = false }
+futures-lite = { version = "1.13", optional = true }
 redis = { version = "0.23", optional = true }
 
 [features]
-default = ["client"]
+default = ["server"]
 client = ["bevy/default"]
-server = ["aws-config", "aws-sdk-sqs", "redis"]
+server = ["aws-config", "aws-sdk-sqs", "futures-lite", "redis"]

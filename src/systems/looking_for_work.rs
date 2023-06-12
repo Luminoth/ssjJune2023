@@ -6,11 +6,11 @@ use crate::components::looking_for_work::*;
 use crate::states::GameState;
 
 pub fn setup(mut _commands: Commands) {
-    info!("Entering Looking For Work state");
+    info!("entering LookingForWork state");
 }
 
-pub fn teardown(to_despawn: Query<Entity, With<OnLookingForWork>>, mut commands: Commands) {
-    info!("Exiting Looking For Work state");
+pub fn teardown(mut commands: Commands, to_despawn: Query<Entity, With<OnLookingForWork>>) {
+    info!("exiting LookingForWork state");
 
     for entity in &to_despawn {
         commands.entity(entity).despawn_recursive();

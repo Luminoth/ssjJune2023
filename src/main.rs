@@ -10,10 +10,6 @@ use bevy::prelude::*;
 
 use states::*;
 
-/*fn setup(mut commands: Commands) {
-    commands.spawn(Camera2dBundle::default());
-}*/
-
 fn main() {
     #[cfg(all(feature = "client", feature = "server"))]
     compile_error!("feature \"client\" and feature \"server\" cannot be enabled at the same time");
@@ -26,6 +22,7 @@ fn main() {
 
     let mut app = App::new();
     app.add_state::<GameState>();
+    //.add_plugin(bevy::diagnostic::LogDiagnosticsPlugin::default())
 
     #[cfg(feature = "client")]
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
@@ -45,10 +42,8 @@ fn main() {
     ))
     .add_plugins(MinimalPlugins)
     .add_plugin(bevy::log::LogPlugin::default())
+    .add_plugin(plugins::init_server::InitServerPlugin)
     .add_plugin(plugins::looking_for_work::LookingForWorkPlugin);
 
-    app
-        //.add_plugin(bevy::diagnostic::LogDiagnosticsPlugin::default())
-        //.add_startup_system(setup)
-        .run();
+    app.run();
 }

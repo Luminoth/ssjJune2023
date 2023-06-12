@@ -3443,6 +3443,7 @@ dependencies = [
  "aws-config",
  "aws-sdk-sqs",
  "bevy",
+ "futures-lite",
  "redis",
 ]
 
