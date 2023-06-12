@@ -27,7 +27,7 @@ pub fn teardown(mut commands: Commands, to_despawn: Query<Entity, With<OnInitSer
     }
 }
 
-pub fn wait_for_tasks(
+pub fn wait_for_aws_config_task(
     mut commands: Commands,
     mut config_tasks: Query<(Entity, &mut AwsConfigTask)>,
     mut game_state: ResMut<NextState<GameState>>,
