@@ -2,6 +2,7 @@
 name = "ssj_june2023"
 version = "0.1.0"
 edition = "2021"
+resolver = "2"
 
 [profile.dev]
 opt-level = 1
@@ -10,4 +11,9 @@ opt-level = 1
 opt-level = 3
 
 [dependencies]
-bevy = "0.10"
+bevy = { version = "0.10", default-features = false }
+
+[features]
+default = ["client"]
+client = ["bevy/default"]
+server = []
