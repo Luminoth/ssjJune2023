@@ -44,7 +44,8 @@ fn main() {
     .add_plugin(bevy::log::LogPlugin::default())
     .add_plugin(bevy_tokio_tasks::TokioTasksPlugin::default())
     .add_plugin(plugins::init_server::InitServerPlugin)
-    .add_plugin(plugins::looking_for_work::LookingForWorkPlugin);
+    .add_plugin(plugins::looking_for_work::LookingForWorkPlugin)
+    .add_plugin(plugins::working::WorkingPlugin);
 
     app.run();
 }
