@@ -12,7 +12,6 @@ opt-level = 3
 
 [dependencies]
 aws-config = { version = "0.55", optional = true }
-aws-gamelift-server-sdk-rs = { version = "0.3", optional = true }
 aws-sdk-sqs = { version = "0.28", optional = true }
 bevy = { version = "0.10", default-features = false }
 bevy-tokio-tasks = { version = "0.10", optional = true }
@@ -34,4 +33,3 @@ server = [
     "redis",
     "tokio",
 ]
-gamelift = ["server", "aws-gamelift-server-sdk-rs"]

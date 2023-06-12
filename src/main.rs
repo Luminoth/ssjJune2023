@@ -50,10 +50,5 @@ fn main() {
         .add_plugin(plugins::working::WorkingPlugin);
     }
 
-    #[cfg(feature = "gamelift")]
-    {
-        println!("enabling GameLift support");
-    }
-
     app.run();
 }

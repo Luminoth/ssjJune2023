@@ -1,1 +1,0 @@
-* GameLift server support
