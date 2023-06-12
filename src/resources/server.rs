@@ -1,6 +1,7 @@
 #![cfg(feature = "server")]
 
+use aws_config::SdkConfig;
 use bevy::prelude::*;
 
 #[derive(Resource, Deref, DerefMut)]
-pub struct SqsClient(pub aws_sdk_sqs::Client);
+pub struct AwsConfig(pub SdkConfig);

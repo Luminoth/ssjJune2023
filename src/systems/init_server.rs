@@ -1,18 +1,17 @@
 #![cfg(feature = "server")]
 
 use bevy::prelude::*;
-use bevy::tasks::*;
+use bevy_tokio_tasks::*;
 use futures_lite::future;
 
 use crate::components::init_server::*;
+use crate::resources::server::*;
 use crate::states::GameState;
 
-pub fn setup(mut commands: Commands) {
+pub fn setup(mut commands: Commands, runtime: ResMut<TokioTasksRuntime>) {
     info!("entering InitServer state");
 
-    let thread_pool = AsyncComputeTaskPool::get();
-
-    let task = thread_pool.spawn(async move {
+    let task = runtime.spawn_background_task(|_ctx| async move {
         info!("loading AWS config...");
         aws_config::load_from_env().await
     });
@@ -35,9 +34,13 @@ pub fn wait_for_tasks(
 ) {
     let (entity, mut task) = config_tasks.single_mut();
     if let Some(config) = future::block_on(future::poll_once(&mut task.0)) {
+        // TODO: error handling
+        let config = config.unwrap();
+
         debug!("AWS config: {:?}", config);
 
-        commands.entity(entity).remove::<AwsConfigTask>();
+        commands.entity(entity).despawn_recursive();
+        commands.insert_resource(AwsConfig(config));
 
         game_state.set(GameState::LookingForWork);
     }
