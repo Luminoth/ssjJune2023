@@ -43,7 +43,9 @@ fn main() {
     app.insert_resource(bevy::app::ScheduleRunnerSettings::run_loop(
         bevy::utils::Duration::from_secs_f64(1.0 / 60.0),
     ))
-    .add_plugins(MinimalPlugins);
+    .add_plugins(MinimalPlugins)
+    .add_plugin(bevy::log::LogPlugin::default())
+    .add_plugin(plugins::looking_for_work::LookingForWorkPlugin);
 
     app
         //.add_plugin(bevy::diagnostic::LogDiagnosticsPlugin::default())

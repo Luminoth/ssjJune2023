@@ -1,3 +1,5 @@
+#![cfg(feature = "client")]
+
 use bevy::prelude::*;
 
 pub struct MenuPlugin;

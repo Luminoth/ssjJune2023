@@ -11,9 +11,12 @@ opt-level = 1
 opt-level = 3
 
 [dependencies]
+aws-config = { version = "0.55", optional = true }
+aws-sdk-sqs = { version = "0.28", optional = true }
 bevy = { version = "0.10", default-features = false }
+redis = { version = "0.23", optional = true }
 
 [features]
 default = ["client"]
 client = ["bevy/default"]
-server = []
+server = ["aws-config", "aws-sdk-sqs", "redis"]
