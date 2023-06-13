@@ -3,7 +3,7 @@ use bevy_tokio_tasks::*;
 
 use crate::components::server::working::*;
 
-pub fn setup(mut _commands: Commands, _runtime: ResMut<TokioTasksRuntime>) {
+pub fn setup(mut _commands: Commands, _runtime: Res<TokioTasksRuntime>) {
     info!("entering Working state");
 }
 

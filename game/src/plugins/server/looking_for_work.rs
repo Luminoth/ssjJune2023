@@ -3,12 +3,13 @@ use bevy::prelude::*;
 use crate::states::GameState;
 use crate::systems::server::looking_for_work::*;
 
-#[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 pub enum LookingForWorkState {
     #[default]
     Init,
     GetQueueUrl,
     LookForWork,
+    ClaimWork,
 }
 
 pub struct LookingForWorkPlugin;
@@ -25,6 +26,7 @@ impl Plugin for LookingForWorkPlugin {
                 look_for_work.in_schedule(OnEnter(LookingForWorkState::LookForWork)),
                 wait_for_work.in_set(OnUpdate(LookingForWorkState::LookForWork)),
             ))
+            .add_systems((wait_for_claim_work.in_set(OnUpdate(LookingForWorkState::ClaimWork)),))
             .add_system(teardown.in_schedule(OnExit(GameState::LookingForWork)));
     }
 }

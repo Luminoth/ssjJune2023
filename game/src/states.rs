@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 #[cfg(feature = "client")]
-#[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 pub enum GameState {
     #[default]
     Splash,
@@ -10,7 +10,7 @@ pub enum GameState {
 }
 
 #[cfg(feature = "server")]
-#[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 pub enum GameState {
     #[default]
     InitServer,

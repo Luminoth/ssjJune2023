@@ -45,7 +45,7 @@ pub fn get_queue_url(
     mut throttle: ResMut<AwsThrottle>,
     mut looking_for_work_state: ResMut<NextState<LookingForWorkState>>,
     time: Res<Time>,
-    runtime: ResMut<TokioTasksRuntime>,
+    runtime: Res<TokioTasksRuntime>,
 ) {
     throttle.tick(time.delta());
 
@@ -113,7 +113,7 @@ pub fn look_for_work(
     mut cooldown: ResMut<LookForWorkCooldown>,
     mut looking_for_work_state: ResMut<NextState<LookingForWorkState>>,
     time: Res<Time>,
-    runtime: ResMut<TokioTasksRuntime>,
+    runtime: Res<TokioTasksRuntime>,
 ) {
     throttle.tick(time.delta());
     cooldown.tick(time.delta());
@@ -143,14 +143,17 @@ pub fn look_for_work(
     commands.spawn((ReceiveMessageTask(task), OnLookingForWork));
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn wait_for_work(
     mut commands: Commands,
+    client: Res<SqsClient>,
+    queue_url: Res<QueueUrl>,
     mut receive_message_tasks: Query<(Entity, &mut ReceiveMessageTask)>,
     mut throttle: ResMut<AwsThrottle>,
     mut cooldown: ResMut<LookForWorkCooldown>,
     mut random: ResMut<Random>,
     mut looking_for_work_state: ResMut<NextState<LookingForWorkState>>,
-    mut game_state: ResMut<NextState<GameState>>,
+    runtime: Res<TokioTasksRuntime>,
 ) {
     if let Ok((entity, mut task)) = receive_message_tasks.get_single_mut() {
         if let Some(result) = future::block_on(future::poll_once(&mut task.0)) {
@@ -160,18 +163,31 @@ pub fn wait_for_work(
             match result {
                 Ok(output) => {
                     if let Some(messages) = output.messages() {
-                        info!("messages: {:?}", messages);
+                        info!("found work: {:?}", messages);
 
-                        // TODO: do something with the messages
+                        let message = &messages[0];
+                        let message_reciept_handle = message.receipt_handle().unwrap().to_owned();
 
-                        // TODO: have to delete the message from the queue
+                        let task = runtime.spawn_background_task({
+                            let client = client.0.clone();
+                            let queue_url = queue_url.0.clone();
+
+                            |_ctx| async move {
+                                info!("claiming work...");
+                                client
+                                    .delete_message()
+                                    .queue_url(queue_url)
+                                    .receipt_handle(message_reciept_handle)
+                                    .send()
+                                    .await
+                            }
+                        });
+
+                        commands.spawn((ClaimWorkTask(task), OnLookingForWork));
 
                         throttle.reset();
 
-                        cooldown.start();
-
-                        game_state.set(GameState::Working);
-                        looking_for_work_state.set(LookingForWorkState::Init);
+                        looking_for_work_state.set(LookingForWorkState::ClaimWork);
                     } else {
                         info!("no work");
 
@@ -184,6 +200,46 @@ pub fn wait_for_work(
                     info!("error: {:?}", err);
 
                     throttle.start(&mut random);
+                }
+            }
+
+            commands.entity(entity).despawn_recursive();
+        }
+    }
+}
+
+pub fn wait_for_claim_work(
+    mut commands: Commands,
+    mut claim_work_tasks: Query<(Entity, &mut ClaimWorkTask)>,
+    mut throttle: ResMut<AwsThrottle>,
+    mut random: ResMut<Random>,
+    mut looking_for_work_state: ResMut<NextState<LookingForWorkState>>,
+    mut game_state: ResMut<NextState<GameState>>,
+) {
+    if let Ok((entity, mut task)) = claim_work_tasks.get_single_mut() {
+        if let Some(result) = future::block_on(future::poll_once(&mut task.0)) {
+            // TODO: error handling
+            let result = result.unwrap();
+
+            match result {
+                Ok(_) => {
+                    info!("claimed work"); //: {:?}", messages);
+
+                    // TODO: pass in the message
+                    // TODO: do something with the messages
+                    //let message = &messages[0];
+
+                    throttle.reset();
+
+                    game_state.set(GameState::Working);
+                    looking_for_work_state.set(LookingForWorkState::Init);
+                }
+                Err(err) => {
+                    info!("error: {:?}", err);
+
+                    throttle.start(&mut random);
+
+                    looking_for_work_state.set(LookingForWorkState::LookForWork);
                 }
             }
 

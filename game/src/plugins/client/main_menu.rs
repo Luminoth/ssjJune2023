@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use crate::states::GameState;
 use crate::systems::client::main_menu::*;
 
-#[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 pub enum MainMenuState {
     #[default]
     Main,

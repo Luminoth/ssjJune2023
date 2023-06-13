@@ -1,4 +1,4 @@
 use bevy::prelude::*;
 
-#[derive(Component)]
+#[derive(Debug, Component)]
 pub struct OnSplashScreen;

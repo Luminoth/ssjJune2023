@@ -6,7 +6,7 @@ use rand::distributions::uniform::{SampleRange, SampleUniform};
 use rand::prelude::*;
 
 // TODO: would SmallRng be better here? we don't need a secure rng
-#[derive(Resource, Deref, DerefMut)]
+#[derive(Debug, Resource, Deref, DerefMut)]
 pub struct Random(StdRng);
 
 impl Default for Random {

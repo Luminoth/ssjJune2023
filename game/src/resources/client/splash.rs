@@ -1,4 +1,4 @@
 use bevy::prelude::*;
 
-#[derive(Resource, Deref, DerefMut)]
+#[derive(Debug, Resource, Deref, DerefMut)]
 pub struct SplashTimer(pub Timer);

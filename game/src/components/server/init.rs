@@ -2,8 +2,8 @@ use aws_config::SdkConfig;
 use bevy::prelude::*;
 use tokio::task;
 
-#[derive(Component)]
+#[derive(Debug, Component)]
 pub struct OnInitServer;
 
-#[derive(Component)]
+#[derive(Debug, Component)]
 pub struct AwsConfigTask(pub task::JoinHandle<SdkConfig>);

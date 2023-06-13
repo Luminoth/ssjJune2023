@@ -4,6 +4,7 @@ use bevy::prelude::*;
 
 use crate::resources::Random;
 
+#[derive(Debug)]
 pub struct Cooldown {
     timer: Timer,
     duration: bevy::utils::Duration,
@@ -31,7 +32,7 @@ impl Cooldown {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Throttle {
     timer: Timer,
     attempts: u32,

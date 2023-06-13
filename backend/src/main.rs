@@ -1,10 +1,27 @@
 #![deny(warnings)]
 
+mod error;
+mod state;
+
 use std::net::SocketAddr;
 
-use axum::{routing::get, Router};
-use tracing::{info, Level};
+use aws_config::SdkConfig;
+use axum::{
+    extract::{Path, State},
+    http::{HeaderValue, Method, StatusCode},
+    routing::{get, post},
+    Json, Router,
+};
+use serde::{Deserialize, Serialize};
+use tower_http::cors::CorsLayer;
+use tracing::{debug, info, Level};
 use tracing_subscriber::FmtSubscriber;
+use uuid::Uuid;
+
+use error::AppError;
+use state::AwsState;
+
+use common::messages;
 
 fn init_logging() -> anyhow::Result<()> {
     let subscriber = FmtSubscriber::builder()
@@ -16,11 +33,38 @@ fn init_logging() -> anyhow::Result<()> {
     Ok(())
 }
 
+async fn get_queue_url(aws_config: &SdkConfig) -> anyhow::Result<String> {
+    info!("getting queue URL ...");
+
+    let client = aws_sdk_sqs::Client::new(aws_config);
+    let result = client.get_queue_url().queue_name("ssj2023").send().await?;
+    Ok(result
+        .queue_url()
+        .ok_or(anyhow::anyhow!("missing queue URL"))?
+        .to_owned())
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     init_logging()?;
 
-    let app = Router::new().route("/", get(root));
+    let aws_config = aws_config::load_from_env().await;
+
+    let queue_url = get_queue_url(&aws_config).await?;
+    debug!("queue URL: {}", queue_url);
+
+    let aws_state = AwsState::new(aws_config, queue_url);
+
+    let app = Router::new()
+        .route("/characters/:id", get(get_characters))
+        .route("/duel", post(create_duel))
+        .layer(
+            CorsLayer::new()
+                .allow_origin("*".parse::<HeaderValue>().unwrap())
+                .allow_headers([axum::http::header::CONTENT_TYPE])
+                .allow_methods([Method::OPTIONS, Method::GET, Method::POST]),
+        )
+        .with_state(aws_state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     info!("listening on {}", addr);
@@ -32,6 +76,53 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn root() -> &'static str {
-    "Hello, World!"
+#[derive(Debug, Serialize)]
+struct GetCharactersResponse {}
+
+async fn get_characters(
+    Path(user_id): Path<Uuid>,
+) -> Result<(StatusCode, Json<GetCharactersResponse>), AppError> {
+    info!("getting characters for {}", user_id);
+
+    let response = GetCharactersResponse {};
+    Ok((StatusCode::OK, Json(response)))
+}
+
+#[derive(Debug, Deserialize)]
+struct CreateDuelRequest {
+    user_id: Uuid,
+    character_id: Uuid,
+}
+
+#[derive(Debug, Serialize)]
+struct CreateDuelResponse {}
+
+async fn create_duel(
+    State(aws_state): State<AwsState>,
+    Json(request): Json<CreateDuelRequest>,
+) -> Result<(StatusCode, Json<CreateDuelResponse>), AppError> {
+    info!(
+        "creating duel for {}:{}",
+        request.user_id, request.character_id
+    );
+
+    let opponent_user_id = Uuid::new_v4();
+    let opponent_character_id = Uuid::new_v4();
+    let message = messages::duel::Duel::new(
+        request.user_id,
+        request.character_id,
+        opponent_user_id,
+        opponent_character_id,
+    );
+
+    let client = aws_sdk_sqs::Client::new(aws_state.get_config());
+    client
+        .send_message()
+        .queue_url(aws_state.get_queue_url())
+        .message_body(message)
+        .send()
+        .await?;
+
+    let response = CreateDuelResponse {};
+    Ok((StatusCode::CREATED, Json(response)))
 }

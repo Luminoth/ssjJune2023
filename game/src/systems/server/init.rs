@@ -6,7 +6,7 @@ use crate::components::server::init::*;
 use crate::resources::server::*;
 use crate::states::GameState;
 
-pub fn setup(mut commands: Commands, runtime: ResMut<TokioTasksRuntime>) {
+pub fn setup(mut commands: Commands, runtime: Res<TokioTasksRuntime>) {
     info!("entering InitServer state");
 
     let task = runtime.spawn_background_task(|_ctx| async move {
