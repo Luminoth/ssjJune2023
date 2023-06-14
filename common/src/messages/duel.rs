@@ -1,8 +1,6 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use super::Message;
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Duel {
     user_id: Uuid,
@@ -10,14 +8,6 @@ pub struct Duel {
 
     opponent_user_id: Uuid,
     opponent_character_id: Uuid,
-}
-
-impl Message for Duel {}
-
-impl From<Duel> for String {
-    fn from(message: Duel) -> String {
-        serde_json::to_string(&message).unwrap_or(String::new())
-    }
 }
 
 impl Duel {

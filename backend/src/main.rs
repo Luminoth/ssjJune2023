@@ -25,7 +25,7 @@ use uuid::Uuid;
 use error::AppError;
 use state::AwsState;
 
-use common::messages;
+use common::messages::Message;
 
 fn init_logging() -> anyhow::Result<()> {
     let subscriber = FmtSubscriber::builder()
@@ -119,7 +119,7 @@ async fn create_duel(
 
     let opponent_user_id = Uuid::new_v4();
     let opponent_character_id = Uuid::new_v4();
-    let message = messages::duel::Duel::new(
+    let message = Message::new_duel(
         request.user_id,
         request.character_id,
         opponent_user_id,
