@@ -12,3 +12,9 @@ pub struct AwsConfig(pub SdkConfig);
 
 #[derive(Debug, Resource, Default, Deref, DerefMut)]
 pub struct AwsThrottle(pub Throttle);
+
+#[derive(Debug, Resource, Deref, DerefMut)]
+pub struct SqsClient(pub aws_sdk_sqs::Client);
+
+#[derive(Debug, Resource, Deref, DerefMut)]
+pub struct WorkMessage(pub String);

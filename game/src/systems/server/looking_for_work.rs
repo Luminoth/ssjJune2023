@@ -31,7 +31,7 @@ pub fn teardown(mut commands: Commands, to_despawn: Query<Entity, With<OnLooking
 
     commands.remove_resource::<AwsThrottle>();
     commands.remove_resource::<LookForWorkCooldown>();
-    commands.remove_resource::<QueueUrl>();
+    commands.remove_resource::<WorkQueueUrl>();
     commands.remove_resource::<SqsClient>();
 
     for entity in &to_despawn {
@@ -86,12 +86,12 @@ pub fn wait_for_queue_url(
                     info!("queue url: {}", queue_url);
 
                     throttle.reset();
-                    commands.insert_resource(QueueUrl(queue_url));
+                    commands.insert_resource(WorkQueueUrl(queue_url));
 
                     looking_for_work_state.set(LookingForWorkState::LookForWork);
                 }
                 Err(err) => {
-                    info!("queue url error: {:?}", err);
+                    error!("queue url error: {:?}", err);
 
                     throttle.start(&mut random);
 
@@ -108,7 +108,7 @@ pub fn wait_for_queue_url(
 pub fn look_for_work(
     mut commands: Commands,
     client: Res<SqsClient>,
-    queue_url: Res<QueueUrl>,
+    queue_url: Res<WorkQueueUrl>,
     mut throttle: ResMut<AwsThrottle>,
     mut cooldown: ResMut<LookForWorkCooldown>,
     mut looking_for_work_state: ResMut<NextState<LookingForWorkState>>,
@@ -147,7 +147,7 @@ pub fn look_for_work(
 pub fn wait_for_work(
     mut commands: Commands,
     client: Res<SqsClient>,
-    queue_url: Res<QueueUrl>,
+    queue_url: Res<WorkQueueUrl>,
     mut receive_message_tasks: Query<(Entity, &mut ReceiveMessageTask)>,
     mut throttle: ResMut<AwsThrottle>,
     mut cooldown: ResMut<LookForWorkCooldown>,
@@ -164,10 +164,22 @@ pub fn wait_for_work(
                 Ok(output) => {
                     if let Some(messages) = output.messages() {
                         info!("found work: {:?}", messages);
+                        if messages.is_empty() {
+                            warn!("unexpected no messages");
+
+                            cooldown.start();
+
+                            looking_for_work_state.set(LookingForWorkState::LookForWork);
+                        } else if messages.len() > 1 {
+                            warn!("received too many messages");
+                        }
 
                         let message = &messages[0];
-                        let message_reciept_handle = message.receipt_handle().unwrap().to_owned();
 
+                        let message_body = message.body().unwrap().to_owned();
+                        commands.insert_resource(WorkMessage(message_body));
+
+                        let message_reciept_handle = message.receipt_handle().unwrap().to_owned();
                         let task = runtime.spawn_background_task({
                             let client = client.0.clone();
                             let queue_url = queue_url.0.clone();
@@ -197,7 +209,7 @@ pub fn wait_for_work(
                     }
                 }
                 Err(err) => {
-                    info!("error: {:?}", err);
+                    error!("receive message error: {:?}", err);
 
                     throttle.start(&mut random);
                 }
@@ -211,6 +223,7 @@ pub fn wait_for_work(
 pub fn wait_for_claim_work(
     mut commands: Commands,
     mut claim_work_tasks: Query<(Entity, &mut ClaimWorkTask)>,
+    message: Res<WorkMessage>,
     mut throttle: ResMut<AwsThrottle>,
     mut random: ResMut<Random>,
     mut looking_for_work_state: ResMut<NextState<LookingForWorkState>>,
@@ -223,11 +236,7 @@ pub fn wait_for_claim_work(
 
             match result {
                 Ok(_) => {
-                    info!("claimed work"); //: {:?}", messages);
-
-                    // TODO: pass in the message
-                    // TODO: do something with the messages
-                    //let message = &messages[0];
+                    info!("claimed work: {:?}", message);
 
                     throttle.reset();
 
@@ -235,7 +244,9 @@ pub fn wait_for_claim_work(
                     looking_for_work_state.set(LookingForWorkState::Init);
                 }
                 Err(err) => {
-                    info!("error: {:?}", err);
+                    error!("delete message error: {:?}", err);
+
+                    commands.remove_resource::<WorkMessage>();
 
                     throttle.start(&mut random);
 
