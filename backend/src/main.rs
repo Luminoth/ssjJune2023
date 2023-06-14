@@ -1,3 +1,6 @@
+// https://github.com/tokio-rs/axum/blob/v0.6.x/examples/oauth/src/main.rs
+// could be interesting to hook into Discord OAuth
+
 #![deny(warnings)]
 
 mod error;
@@ -9,6 +12,7 @@ use aws_config::SdkConfig;
 use axum::{
     extract::{Path, State},
     http::{HeaderValue, Method, StatusCode},
+    response::IntoResponse,
     routing::{get, post},
     Json, Router,
 };
@@ -62,9 +66,11 @@ async fn main() -> anyhow::Result<()> {
             CorsLayer::new()
                 .allow_origin("*".parse::<HeaderValue>().unwrap())
                 .allow_headers([axum::http::header::CONTENT_TYPE])
-                .allow_methods([Method::OPTIONS, Method::GET, Method::POST]),
+                .allow_methods([Method::OPTIONS, Method::HEAD, Method::GET, Method::POST]),
         )
         .with_state(aws_state);
+
+    let app = app.fallback(handler_404);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     info!("listening on {}", addr);
@@ -74,6 +80,11 @@ async fn main() -> anyhow::Result<()> {
         .unwrap();
 
     Ok(())
+}
+
+async fn handler_404() -> impl IntoResponse {
+    debug!("invalid resource");
+    (StatusCode::NOT_FOUND, "resource not found")
 }
 
 #[derive(Debug, Serialize)]
