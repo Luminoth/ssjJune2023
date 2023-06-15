@@ -28,7 +28,7 @@ tokio = { version = "1.28", default-features = false, features = [
 path = "../common"
 
 [features]
-default = ["client"]
+default = ["server"]
 client = ["bevy/default", "bevy_egui", "bevy-inspector-egui"]
 server = [
     "aws-config",

@@ -9,9 +9,7 @@ mod resources;
 mod states;
 mod systems;
 
-use bevy::{input::common_conditions::input_toggle_active, prelude::*};
-use bevy_egui::EguiPlugin;
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use bevy::prelude::*;
 
 use resources::Random;
 use states::*;
@@ -55,6 +53,16 @@ fn main() {
         )
         .add_plugin(bevy::diagnostic::FrameTimeDiagnosticsPlugin);
 
+        // egui
+        app.add_plugin(bevy_egui::EguiPlugin);
+
+        // inspector
+        app.add_plugin(
+            bevy_inspector_egui::quick::WorldInspectorPlugin::default().run_if(
+                bevy::input::common_conditions::input_toggle_active(true, KeyCode::Grave),
+            ),
+        );
+
         // client plugins
         app.add_plugin(plugins::client::splash::SplashPlugin)
             .add_plugin(plugins::client::main_menu::MainMenuPlugin);
@@ -79,18 +87,11 @@ fn main() {
         app.add_plugin(bevy_tokio_tasks::TokioTasksPlugin::default());
 
         // server plugins
-        app.add_plugin(plugins::server::init::InitServerPlugin)
+        app.add_plugin(plugins::server::aws::AwsTaskPlugin)
+            .add_plugin(plugins::server::init::InitServerPlugin)
             .add_plugin(plugins::server::looking_for_work::LookingForWorkPlugin)
             .add_plugin(plugins::server::working::WorkingPlugin);
     }
-
-    // egui
-    app.add_plugin(EguiPlugin);
-
-    // inspector
-    app.add_plugin(
-        WorldInspectorPlugin::default().run_if(input_toggle_active(true, KeyCode::Grave)),
-    );
 
     // shared resources
     app.insert_resource(Random::default());

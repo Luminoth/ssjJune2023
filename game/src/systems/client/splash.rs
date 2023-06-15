@@ -4,7 +4,7 @@ use crate::components::client::splash::*;
 use crate::resources::client::splash::*;
 use crate::states::GameState;
 
-pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+pub fn enter(mut commands: Commands, asset_server: Res<AssetServer>) {
     info!("entering Splash state");
 
     let icon = asset_server.load("splash.png");
@@ -36,12 +36,8 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(SplashTimer(Timer::from_seconds(5.0, TimerMode::Once)));
 }
 
-pub fn teardown(mut commands: Commands, to_despawn: Query<Entity, With<OnSplashScreen>>) {
+pub fn exit() {
     info!("exiting Splash state");
-
-    for entity in &to_despawn {
-        commands.entity(entity).despawn_recursive();
-    }
 }
 
 pub fn countdown(

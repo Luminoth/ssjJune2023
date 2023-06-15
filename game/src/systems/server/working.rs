@@ -1,13 +1,12 @@
 use bevy::prelude::*;
 
-use crate::components::server::working::*;
 use crate::plugins::server::working::*;
 use crate::resources::server::*;
 use crate::states::GameState;
 
 use common::messages::Message;
 
-pub fn setup(
+pub fn enter(
     mut commands: Commands,
     message: Res<WorkMessage>,
     mut working_state: ResMut<NextState<WorkingState>>,
@@ -34,12 +33,8 @@ pub fn setup(
     }
 }
 
-pub fn teardown(mut commands: Commands, to_despawn: Query<Entity, With<OnWorking>>) {
+pub fn exit() {
     info!("exiting Working state");
-
-    for entity in &to_despawn {
-        commands.entity(entity).despawn_recursive();
-    }
 }
 
 pub fn duel(
