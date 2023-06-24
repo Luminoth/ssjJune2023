@@ -7,13 +7,18 @@ use crate::states::GameState;
 pub fn enter(mut commands: Commands, asset_server: Res<AssetServer>) {
     info!("entering Splash state");
 
-    let icon = asset_server.load("splash.png");
+    commands.insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)));
+    commands.spawn((Camera2dBundle::default(), OnSplashScreen));
+
+    let image = asset_server.load("images/splash.png");
+
+    // TODO: fade-in / fade-out
+    // TODO: multiple splash screens (PIGSquad, Bevy)
 
     commands
         .spawn((
             NodeBundle {
                 style: Style {
-                    align_items: AlignItems::Center,
                     justify_content: JustifyContent::Center,
                     size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
                     ..default()
@@ -28,7 +33,7 @@ pub fn enter(mut commands: Commands, asset_server: Res<AssetServer>) {
                     size: Size::new(Val::Px(200.0), Val::Auto),
                     ..default()
                 },
-                image: UiImage::new(icon),
+                image: UiImage::new(image),
                 ..default()
             });
         });

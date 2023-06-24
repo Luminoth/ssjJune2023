@@ -4,10 +4,12 @@ use crate::components::client::main_menu::*;
 use crate::states::GameState;
 use crate::systems::{cleanup_state, client::main_menu::*};
 
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Reflect)]
 pub enum MainMenuState {
     #[default]
     Main,
+    WaitForOAuth,
+    WaitForAuth,
 }
 
 pub struct MainMenuPlugin;
@@ -16,7 +18,11 @@ impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_state::<MainMenuState>()
             .add_system(enter.in_schedule(OnEnter(GameState::MainMenu)))
-            // TODO: add main menu systems
+            .add_systems((login_button_handler.in_set(OnUpdate(MainMenuState::Main)),))
+            .add_systems((
+                ok_button_handler.in_set(OnUpdate(MainMenuState::WaitForOAuth)),
+                cancel_button_handler.in_set(OnUpdate(MainMenuState::WaitForOAuth)),
+            ))
             .add_system(exit.in_schedule(OnExit(GameState::MainMenu)))
             .add_system(cleanup_state::<OnMainMenu>.in_schedule(OnExit(GameState::MainMenu)));
     }

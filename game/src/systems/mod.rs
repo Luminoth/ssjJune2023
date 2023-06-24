@@ -10,4 +10,6 @@ where
     for e in &query {
         commands.entity(e).despawn_recursive();
     }
+
+    commands.remove_resource::<ClearColor>();
 }

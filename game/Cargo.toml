@@ -23,13 +23,20 @@ redis = { version = "0.23", optional = true }
 tokio = { version = "1.28", default-features = false, features = [
     "rt",
 ], optional = true }
+webbrowser = { version = "0.8", optional = true }
 
 [dependencies.common]
 path = "../common"
 
 [features]
-default = ["server"]
-client = ["bevy/default", "bevy_egui", "bevy-inspector-egui"]
+default = ["client"]
+client = [
+    "bevy/default",
+    "bevy_egui",
+    "bevy-inspector-egui",
+    "futures-lite",
+    "webbrowser",
+]
 server = [
     "aws-config",
     "aws-sdk-sqs",
