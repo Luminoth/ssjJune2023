@@ -79,9 +79,9 @@ pub fn enter(
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::Center,
                     size: Size::width(Val::Percent(100.0)),
+                    display: Display::None,
                     ..default()
                 },
-                visibility: Visibility::Hidden,
                 ..default()
             },
             OnMainMenu,
@@ -164,9 +164,9 @@ pub fn enter(
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::Center,
                     size: Size::width(Val::Percent(100.0)),
+                    display: Display::None,
                     ..default()
                 },
-                visibility: Visibility::Hidden,
                 ..default()
             },
             OnMainMenu,
@@ -196,8 +196,8 @@ pub fn exit() {
 
 pub fn login_button_handler(
     mut interaction_query: Query<&Interaction, (Changed<Interaction>, With<LoginButton>)>,
-    mut login_ui: Query<&mut Visibility, (With<LoginUI>, Without<OAuthUI>, Without<AuthUI>)>,
-    mut oauth_ui: Query<&mut Visibility, (With<OAuthUI>, Without<LoginUI>, Without<AuthUI>)>,
+    mut login_ui: Query<&mut Style, (With<LoginUI>, Without<OAuthUI>, Without<AuthUI>)>,
+    mut oauth_ui: Query<&mut Style, (With<OAuthUI>, Without<LoginUI>, Without<AuthUI>)>,
     mut main_menu_state: ResMut<NextState<MainMenuState>>,
 ) {
     if let Ok(interaction) = interaction_query.get_single_mut() {
@@ -205,11 +205,11 @@ pub fn login_button_handler(
             //webbrowser::open("https://itch.io/user/oauth?client_id=foobar&scope=profile:me&redirect_uri=urn:ietf:wg:oauth:2.0:oob").unwrap();
 
             if let Ok(mut login_ui) = login_ui.get_single_mut() {
-                *login_ui = Visibility::Hidden;
+                login_ui.display = Display::None;
             }
 
             if let Ok(mut oauth_ui) = oauth_ui.get_single_mut() {
-                *oauth_ui = Visibility::Visible;
+                oauth_ui.display = Display::Flex;
             }
 
             main_menu_state.set(MainMenuState::WaitForOAuth);
@@ -219,7 +219,7 @@ pub fn login_button_handler(
 
 pub fn ok_button_handler(
     mut interaction_query: Query<&Interaction, (Changed<Interaction>, With<OkButton>)>,
-    mut oauth_ui: Query<&mut Visibility, (With<OAuthUI>, Without<LoginUI>, Without<AuthUI>)>,
+    mut oauth_ui: Query<&mut Style, (With<OAuthUI>, Without<LoginUI>, Without<AuthUI>)>,
     mut main_menu_state: ResMut<NextState<MainMenuState>>,
 ) {
     if let Ok(interaction) = interaction_query.get_single_mut() {
@@ -227,7 +227,7 @@ pub fn ok_button_handler(
             // TODO: send auth request to backend
 
             if let Ok(mut oauth_ui) = oauth_ui.get_single_mut() {
-                *oauth_ui = Visibility::Hidden;
+                oauth_ui.display = Display::None;
             }
 
             main_menu_state.set(MainMenuState::WaitForAuth);
@@ -237,18 +237,18 @@ pub fn ok_button_handler(
 
 pub fn cancel_button_handler(
     mut interaction_query: Query<&Interaction, (Changed<Interaction>, With<CancelButton>)>,
-    mut login_ui: Query<&mut Visibility, (With<LoginUI>, Without<OAuthUI>, Without<AuthUI>)>,
-    mut oauth_ui: Query<&mut Visibility, (With<OAuthUI>, Without<LoginUI>, Without<AuthUI>)>,
+    mut login_ui: Query<&mut Style, (With<LoginUI>, Without<OAuthUI>, Without<AuthUI>)>,
+    mut oauth_ui: Query<&mut Style, (With<OAuthUI>, Without<LoginUI>, Without<AuthUI>)>,
     mut main_menu_state: ResMut<NextState<MainMenuState>>,
 ) {
     if let Ok(interaction) = interaction_query.get_single_mut() {
         if *interaction == Interaction::Clicked {
             if let Ok(mut login_ui) = login_ui.get_single_mut() {
-                *login_ui = Visibility::Visible;
+                login_ui.display = Display::Flex;
             }
 
             if let Ok(mut oauth_ui) = oauth_ui.get_single_mut() {
-                *oauth_ui = Visibility::Hidden;
+                oauth_ui.display = Display::None;
             }
 
             main_menu_state.set(MainMenuState::Main);
