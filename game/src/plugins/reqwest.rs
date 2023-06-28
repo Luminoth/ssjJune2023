@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::systems::client::reqwest::*;
+use crate::systems::reqwest::*;
 
 pub struct ReqwestPlugin;
 

@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_tokio_tasks::*;
 use futures_lite::future;
 
-use crate::components::client::reqwest::*;
+use crate::components::reqwest::*;
 
 pub fn start_http_requests(
     mut commands: Commands,

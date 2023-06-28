@@ -3,7 +3,7 @@ use bevy_egui::{egui, EguiContexts};
 
 use common::http::*;
 
-use crate::components::client::{main_menu::*, reqwest::*};
+use crate::components::{client::main_menu::*, reqwest::*};
 use crate::plugins::client::main_menu::*;
 use crate::resources::client::main_menu::*;
 use crate::states::GameState;

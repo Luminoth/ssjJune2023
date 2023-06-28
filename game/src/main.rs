@@ -81,8 +81,7 @@ fn main() {
         );
 
         // client plugins
-        app.add_plugin(plugins::client::reqwest::ReqwestPlugin)
-            .add_plugin(plugins::client::splash::SplashPlugin)
+        app.add_plugin(plugins::client::splash::SplashPlugin)
             .add_plugin(plugins::client::main_menu::MainMenuPlugin);
     }
 
@@ -107,6 +106,9 @@ fn main() {
             .add_plugin(plugins::server::looking_for_work::LookingForWorkPlugin)
             .add_plugin(plugins::server::working::WorkingPlugin);
     }
+
+    // shared plugins
+    app.add_plugin(plugins::reqwest::ReqwestPlugin);
 
     // shared resources
     app.insert_resource(Random::default());

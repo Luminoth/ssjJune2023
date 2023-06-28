@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
 pub mod client;
+pub mod reqwest;
 pub mod server;
 
 pub fn cleanup_state<T>(mut commands: Commands, query: Query<Entity, With<T>>)
