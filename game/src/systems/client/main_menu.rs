@@ -29,7 +29,7 @@ pub fn wait_for_login(
     egui::Window::new("Authentication").show(contexts.ctx_mut(), |ui| {
         ui.horizontal(|ui| {
             if ui.button("Login").clicked() {
-                //webbrowser::open("https://itch.io/user/oauth?client_id=foobar&scope=profile:me&redirect_uri=urn:ietf:wg:oauth:2.0:oob").unwrap();
+                webbrowser::open("https://itch.io/user/oauth?client_id=11608a8d9cd812ac0651da4dc2f9f484&scope=profile%3Ame&response_type=token&redirect_uri=urn%3Aietf%3Awg%3Aoauth%3A2.0%3Aoob").unwrap();
 
                 main_menu_state.set(MainMenuState::WaitForOAuth);
             }
@@ -67,7 +67,9 @@ pub fn wait_for_auth(
     mut _main_menu_state: ResMut<NextState<MainMenuState>>,
     mut contexts: EguiContexts,
 ) {
-    egui::Window::new("Authentication").show(contexts.ctx_mut(), |_ui| {
+    egui::Window::new("Authentication").show(contexts.ctx_mut(), |ui| {
+        ui.label("Waiting for authentication ...");
+
         // state goes back to Init
     });
 }
