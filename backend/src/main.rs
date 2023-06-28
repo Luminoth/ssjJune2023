@@ -1,6 +1,3 @@
-// https://github.com/tokio-rs/axum/blob/v0.6.x/examples/oauth/src/main.rs
-// could be interesting to hook into Discord OAuth
-
 #![deny(warnings)]
 
 mod error;
@@ -16,7 +13,6 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use serde::{Deserialize, Serialize};
 use tower_http::cors::CorsLayer;
 use tracing::{debug, info, Level};
 use tracing_subscriber::FmtSubscriber;
@@ -25,6 +21,7 @@ use uuid::Uuid;
 use error::AppError;
 use state::AwsState;
 
+use common::http::*;
 use common::messages::Message;
 
 fn init_logging() -> anyhow::Result<()> {
@@ -60,6 +57,7 @@ async fn main() -> anyhow::Result<()> {
     let aws_state = AwsState::new(aws_config, queue_url);
 
     let app = Router::new()
+        .route("/authenticate", post(authenticate))
         .route("/characters/:id", get(get_characters))
         .route("/duel", post(create_duel))
         .layer(
@@ -72,7 +70,7 @@ async fn main() -> anyhow::Result<()> {
 
     let app = app.fallback(handler_404);
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
     info!("listening on {}", addr);
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
@@ -87,8 +85,21 @@ async fn handler_404() -> impl IntoResponse {
     (StatusCode::NOT_FOUND, "resource not found")
 }
 
-#[derive(Debug, Serialize)]
-struct GetCharactersResponse {}
+async fn authenticate(Json(request): Json<AuthenticateRequest>) -> Result<(), AppError> {
+    info!("authenticating user ...");
+
+    let response = reqwest::get(format!(
+        "https://itch.io/api/1/{}/credentials/info",
+        request.access_token
+    ))
+    .await?
+    .text()
+    .await?;
+
+    info!("{}", response);
+
+    Ok(())
+}
 
 async fn get_characters(
     Path(user_id): Path<Uuid>,
@@ -98,15 +109,6 @@ async fn get_characters(
     let response = GetCharactersResponse {};
     Ok((StatusCode::OK, Json(response)))
 }
-
-#[derive(Debug, Deserialize)]
-struct CreateDuelRequest {
-    user_id: Uuid,
-    character_id: Uuid,
-}
-
-#[derive(Debug, Serialize)]
-struct CreateDuelResponse {}
 
 async fn create_duel(
     State(aws_state): State<AwsState>,

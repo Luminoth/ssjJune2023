@@ -28,6 +28,9 @@ fn main() {
     // core bevy plugins
     //app.add_plugin(bevy::diagnostic::LogDiagnosticsPlugin::default());
 
+    // tokio runtime
+    app.add_plugin(bevy_tokio_tasks::TokioTasksPlugin::default());
+
     #[cfg(feature = "client")]
     {
         println!("starting client");
@@ -78,7 +81,8 @@ fn main() {
         );
 
         // client plugins
-        app.add_plugin(plugins::client::splash::SplashPlugin)
+        app.add_plugin(plugins::client::reqwest::ReqwestPlugin)
+            .add_plugin(plugins::client::splash::SplashPlugin)
             .add_plugin(plugins::client::main_menu::MainMenuPlugin);
     }
 
@@ -96,9 +100,6 @@ fn main() {
             level: LOG_LEVEL,
             ..Default::default()
         });
-
-        // tokio runtime
-        app.add_plugin(bevy_tokio_tasks::TokioTasksPlugin::default());
 
         // server plugins
         app.add_plugin(plugins::server::aws::AwsTaskPlugin)

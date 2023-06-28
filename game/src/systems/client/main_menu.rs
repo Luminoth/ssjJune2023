@@ -1,9 +1,12 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
 
-use crate::components::client::main_menu::*;
+use common::http::*;
+
+use crate::components::client::{main_menu::*, reqwest::*};
 use crate::plugins::client::main_menu::*;
 use crate::resources::client::main_menu::*;
+use crate::states::GameState;
 
 pub fn enter(mut commands: Commands, mut main_menu_state: ResMut<NextState<MainMenuState>>) {
     info!("entering MainMenu state");
@@ -38,6 +41,7 @@ pub fn wait_for_login(
 }
 
 pub fn wait_for_oauth(
+    mut commands: Commands,
     mut auth_token: ResMut<AuthenticationToken>,
     mut main_menu_state: ResMut<NextState<MainMenuState>>,
     mut contexts: EguiContexts,
@@ -51,6 +55,18 @@ pub fn wait_for_oauth(
         ui.horizontal(|ui| {
             ui.add_enabled_ui(!auth_token.0.trim().is_empty(), |ui| {
                 if ui.button("Ok").clicked() {
+                    let client = reqwest::Client::new();
+
+                    let request = client
+                        .post("http://localhost:3000/authenticate")
+                        .json(&AuthenticateRequest {
+                            access_token: auth_token.0.clone(),
+                        })
+                        .build()
+                        .unwrap();
+
+                    commands.spawn(ReqwestRequest((client, request)));
+
                     main_menu_state.set(MainMenuState::WaitForAuth);
                 }
             });
@@ -64,12 +80,47 @@ pub fn wait_for_oauth(
 }
 
 pub fn wait_for_auth(
-    mut _main_menu_state: ResMut<NextState<MainMenuState>>,
+    mut commands: Commands,
+    mut results: Query<(Entity, &mut ReqwestResult)>,
+    mut main_menu_state: ResMut<NextState<MainMenuState>>,
+    mut game_state: ResMut<NextState<GameState>>,
     mut contexts: EguiContexts,
 ) {
     egui::Window::new("Authentication").show(contexts.ctx_mut(), |ui| {
         ui.label("Waiting for authentication ...");
-
-        // state goes back to Init
     });
+
+    if let Ok((entity, mut result)) = results.get_single_mut() {
+        // TODO: error handling
+        let result = result.0.take().unwrap();
+
+        match result {
+            Ok(response) => {
+                let response = response.error_for_status();
+                match response {
+                    Ok(response) => {
+                        let response = response.error_for_status();
+
+                        info!("success: {:?}", response);
+
+                        game_state.set(GameState::Game);
+
+                        main_menu_state.set(MainMenuState::Init);
+                    }
+                    Err(err) => {
+                        error!("authentication error: {:?}", err);
+
+                        main_menu_state.set(MainMenuState::WaitForLogin);
+                    }
+                }
+            }
+            Err(err) => {
+                error!("http client error: {:?}", err);
+
+                main_menu_state.set(MainMenuState::WaitForLogin);
+            }
+        }
+
+        commands.entity(entity).despawn_recursive();
+    }
 }

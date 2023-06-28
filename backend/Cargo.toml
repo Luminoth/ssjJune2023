@@ -10,7 +10,7 @@ axum = "0.6"
 aws-config = "0.55"
 aws-sdk-sqs = "0.28"
 redis = "0.23"
-serde = "1.0"
+reqwest = "0.11"
 tokio = { version = "1.28", features = ["full"] }
 tower-http = { version = "0.4", features = ["cors"] }
 tracing = "0.1"
