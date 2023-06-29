@@ -1,11 +1,13 @@
 #![deny(warnings)]
 
+mod aws;
 mod error;
+mod itchio;
 mod state;
+mod user;
 
 use std::net::SocketAddr;
 
-use aws_config::SdkConfig;
 use axum::{
     extract::{Path, State},
     http::{HeaderValue, Method, StatusCode},
@@ -34,24 +36,13 @@ fn init_logging() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn get_queue_url(aws_config: &SdkConfig) -> anyhow::Result<String> {
-    info!("getting queue URL ...");
-
-    let client = aws_sdk_sqs::Client::new(aws_config);
-    let result = client.get_queue_url().queue_name("ssj2023").send().await?;
-    Ok(result
-        .queue_url()
-        .ok_or(anyhow::anyhow!("missing queue URL"))?
-        .to_owned())
-}
-
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     init_logging()?;
 
     let aws_config = aws_config::load_from_env().await;
 
-    let queue_url = get_queue_url(&aws_config).await?;
+    let queue_url = aws::get_queue_url(&aws_config).await?;
     debug!("queue URL: {}", queue_url);
 
     let aws_state = AwsState::new(aws_config, queue_url);
@@ -85,18 +76,21 @@ async fn handler_404() -> impl IntoResponse {
     (StatusCode::NOT_FOUND, "resource not found")
 }
 
-async fn authenticate(Json(request): Json<AuthenticateRequest>) -> Result<(), AppError> {
+async fn authenticate(
+    State(aws_state): State<AwsState>,
+    Json(request): Json<AuthenticateRequest>,
+) -> Result<(), AppError> {
     info!("authenticating user ...");
 
-    let response = reqwest::get(format!(
-        "https://itch.io/api/1/{}/credentials/info",
-        request.access_token
-    ))
-    .await?
-    .text()
-    .await?;
+    let user = itchio::get_user(request.access_token).await?;
 
-    info!("{}", response);
+    info!("user: {:?}", user);
+
+    aws::save_user(aws_state.get_config()).await?;
+
+    let _secret = aws::get_jwt_secret(aws_state.get_config()).await?;
+
+    // TODO: send back a jwt
 
     Ok(())
 }
@@ -128,13 +122,7 @@ async fn create_duel(
         opponent_character_id,
     );
 
-    let client = aws_sdk_sqs::Client::new(aws_state.get_config());
-    client
-        .send_message()
-        .queue_url(aws_state.get_queue_url())
-        .message_body(message)
-        .send()
-        .await?;
+    aws::post_message(aws_state.get_config(), aws_state.get_queue_url(), message).await?;
 
     let response = CreateDuelResponse {};
     Ok((StatusCode::CREATED, Json(response)))
