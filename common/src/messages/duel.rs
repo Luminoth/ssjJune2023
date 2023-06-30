@@ -3,18 +3,18 @@ use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Duel {
-    user_id: Uuid,
+    user_id: u64,
     character_id: Uuid,
 
-    opponent_user_id: Uuid,
+    opponent_user_id: u64,
     opponent_character_id: Uuid,
 }
 
 impl Duel {
     pub fn new(
-        user_id: Uuid,
+        user_id: u64,
         character_id: Uuid,
-        opponent_user_id: Uuid,
+        opponent_user_id: u64,
         opponent_character_id: Uuid,
     ) -> Self {
         Self {

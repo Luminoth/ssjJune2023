@@ -1,9 +1,8 @@
-#![allow(dead_code)]
-
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
-pub struct ItchIoUser {
+pub struct User {
+    pub id: u64,
     pub username: String,
     pub display_name: String,
     pub cover_url: String,
@@ -11,21 +10,20 @@ pub struct ItchIoUser {
     pub gamer: bool,
     pub press_user: bool,
     pub developer: bool,
-    pub id: u64,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct ItchIoMeResponse {
-    pub user: ItchIoUser,
+pub struct MeResponse {
+    pub user: User,
 }
 
-pub async fn get_user(access_token: impl AsRef<str>) -> anyhow::Result<ItchIoUser> {
+pub async fn get_user(access_token: impl AsRef<str>) -> anyhow::Result<User> {
     let response = reqwest::get(format!(
         "https://itch.io/api/1/{}/me",
         access_token.as_ref()
     ))
     .await?
-    .json::<ItchIoMeResponse>()
+    .json::<MeResponse>()
     .await?;
 
     Ok(response.user)

@@ -6,12 +6,16 @@ pub struct AuthenticateRequest {
     pub access_token: String,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct AuthenticateResponse {
+    pub token: String,
+}
+
 #[derive(Debug, Serialize)]
 pub struct GetCharactersResponse {}
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct CreateDuelRequest {
-    pub user_id: Uuid,
     pub character_id: Uuid,
 }
 

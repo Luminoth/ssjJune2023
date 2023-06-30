@@ -1,5 +1,6 @@
 #![deny(warnings)]
 
+mod auth;
 mod aws;
 mod error;
 mod itchio;
@@ -9,11 +10,12 @@ mod user;
 use std::net::SocketAddr;
 
 use axum::{
-    extract::{Path, State},
+    extract::State,
+    headers::authorization::{Authorization, Bearer},
     http::{HeaderValue, Method, StatusCode},
     response::IntoResponse,
     routing::{get, post},
-    Json, Router,
+    Json, Router, TypedHeader,
 };
 use tower_http::cors::CorsLayer;
 use tracing::{debug, info, Level};
@@ -24,7 +26,7 @@ use error::AppError;
 use state::AwsState;
 
 use common::http::*;
-use common::messages::Message;
+//use common::messages::Message;
 
 fn init_logging() -> anyhow::Result<()> {
     let subscriber = FmtSubscriber::builder()
@@ -49,7 +51,7 @@ async fn main() -> anyhow::Result<()> {
 
     let app = Router::new()
         .route("/authenticate", post(authenticate))
-        .route("/characters/:id", get(get_characters))
+        .route("/characters", get(get_characters))
         .route("/duel", post(create_duel))
         .layer(
             CorsLayer::new()
@@ -79,50 +81,57 @@ async fn handler_404() -> impl IntoResponse {
 async fn authenticate(
     State(aws_state): State<AwsState>,
     Json(request): Json<AuthenticateRequest>,
-) -> Result<(), AppError> {
+) -> Result<(StatusCode, Json<AuthenticateResponse>), AppError> {
     info!("authenticating user ...");
 
-    let user = itchio::get_user(request.access_token).await?;
+    let user = itchio::get_user(request.access_token).await?.into();
 
-    info!("user: {:?}", user);
+    info!("authenticated user: {:?}", user);
 
-    aws::save_user(aws_state.get_config()).await?;
+    aws::save_user(aws_state.get_config(), &user).await?;
 
-    let _secret = aws::get_jwt_secret(aws_state.get_config()).await?;
+    let secret = aws::get_jwt_secret(aws_state.get_config()).await?;
+    let token = auth::generate_token_for_user(user.get_username(), secret)?;
 
-    // TODO: send back a jwt
-
-    Ok(())
+    let response = AuthenticateResponse { token };
+    Ok((StatusCode::OK, Json(response)))
 }
 
 async fn get_characters(
-    Path(user_id): Path<Uuid>,
+    TypedHeader(bearer): TypedHeader<Authorization<Bearer>>,
+    State(aws_state): State<AwsState>,
 ) -> Result<(StatusCode, Json<GetCharactersResponse>), AppError> {
-    info!("getting characters for {}", user_id);
+    let secret = aws::get_jwt_secret(aws_state.get_config()).await?;
+    let username = auth::validate_token(bearer.token(), secret)?;
+
+    info!("getting characters for {}", username);
 
     let response = GetCharactersResponse {};
     Ok((StatusCode::OK, Json(response)))
 }
 
 async fn create_duel(
+    TypedHeader(bearer): TypedHeader<Authorization<Bearer>>,
     State(aws_state): State<AwsState>,
     Json(request): Json<CreateDuelRequest>,
 ) -> Result<(StatusCode, Json<CreateDuelResponse>), AppError> {
-    info!(
-        "creating duel for {}:{}",
-        request.user_id, request.character_id
-    );
+    let secret = aws::get_jwt_secret(aws_state.get_config()).await?;
+    let username = auth::validate_token(bearer.token(), secret)?;
 
-    let opponent_user_id = Uuid::new_v4();
-    let opponent_character_id = Uuid::new_v4();
-    let message = Message::new_duel(
+    //let user = aws::get_user(aws_state.get_config(), user_id);
+
+    info!("creating duel for {}:{}", username, request.character_id);
+
+    let _opponent_user_id = 1234;
+    let _opponent_character_id = Uuid::new_v4();
+    /*let message = Message::new_duel(
         request.user_id,
         request.character_id,
         opponent_user_id,
         opponent_character_id,
     );
 
-    aws::post_message(aws_state.get_config(), aws_state.get_queue_url(), message).await?;
+    aws::post_message(aws_state.get_config(), aws_state.get_queue_url(), message).await?;*/
 
     let response = CreateDuelResponse {};
     Ok((StatusCode::CREATED, Json(response)))
