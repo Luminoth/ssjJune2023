@@ -24,9 +24,10 @@ use uuid::Uuid;
 
 use error::AppError;
 use state::AwsState;
+use user::User;
 
 use common::http::*;
-//use common::messages::Message;
+use common::messages::*;
 
 fn init_logging() -> anyhow::Result<()> {
     let subscriber = FmtSubscriber::builder()
@@ -84,16 +85,19 @@ async fn authenticate(
 ) -> Result<(StatusCode, Json<AuthenticateResponse>), AppError> {
     info!("authenticating user ...");
 
-    let user = itchio::get_user(request.access_token).await?.into();
-
+    let mut user: User = itchio::get_user(&request.access_token).await?.into();
     info!("authenticated user: {:?}", user);
+    user.set_api_key(request.access_token);
 
-    aws::save_user(aws_state.get_config(), &user).await?;
+    aws::save_user(aws_state.get_config(), user.clone()).await?;
 
     let secret = aws::get_jwt_secret(aws_state.get_config()).await?;
-    let token = auth::generate_token_for_user(user.get_username(), secret)?;
+    let token = auth::generate_token_for_user(user.get_user_id().to_string(), secret)?;
 
-    let response = AuthenticateResponse { token };
+    let response = AuthenticateResponse {
+        token,
+        display_name: user.get_display_name().clone(),
+    };
     Ok((StatusCode::OK, Json(response)))
 }
 
@@ -102,11 +106,17 @@ async fn get_characters(
     State(aws_state): State<AwsState>,
 ) -> Result<(StatusCode, Json<GetCharactersResponse>), AppError> {
     let secret = aws::get_jwt_secret(aws_state.get_config()).await?;
-    let username = auth::validate_token(bearer.token(), secret)?;
+    let user_id = auth::validate_token(bearer.token(), secret)?;
 
-    info!("getting characters for {}", username);
+    let user = aws::get_user(aws_state.get_config(), user_id.parse()?)
+        .await?
+        .ok_or_else(|| anyhow::anyhow!("no such user"))?;
 
-    let response = GetCharactersResponse {};
+    info!("getting characters for {}", user.get_user_id());
+
+    let response = GetCharactersResponse {
+        // ...
+    };
     Ok((StatusCode::OK, Json(response)))
 }
 
@@ -116,22 +126,28 @@ async fn create_duel(
     Json(request): Json<CreateDuelRequest>,
 ) -> Result<(StatusCode, Json<CreateDuelResponse>), AppError> {
     let secret = aws::get_jwt_secret(aws_state.get_config()).await?;
-    let username = auth::validate_token(bearer.token(), secret)?;
+    let user_id = auth::validate_token(bearer.token(), secret)?;
 
-    //let user = aws::get_user(aws_state.get_config(), user_id);
+    let user = aws::get_user(aws_state.get_config(), user_id.parse()?)
+        .await?
+        .ok_or_else(|| anyhow::anyhow!("no such user"))?;
 
-    info!("creating duel for {}:{}", username, request.character_id);
+    info!(
+        "creating duel for {}:{}",
+        user.get_user_id(),
+        request.character_id
+    );
 
-    let _opponent_user_id = 1234;
-    let _opponent_character_id = Uuid::new_v4();
-    /*let message = Message::new_duel(
-        request.user_id,
+    let opponent_user_id = 1234;
+    let opponent_character_id = Uuid::new_v4();
+    let message = Message::new_duel(
+        user.get_user_id(),
         request.character_id,
         opponent_user_id,
         opponent_character_id,
     );
 
-    aws::post_message(aws_state.get_config(), aws_state.get_queue_url(), message).await?;*/
+    aws::post_message(aws_state.get_config(), aws_state.get_queue_url(), message).await?;
 
     let response = CreateDuelResponse {};
     Ok((StatusCode::CREATED, Json(response)))

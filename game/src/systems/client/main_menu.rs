@@ -99,8 +99,6 @@ pub fn wait_for_auth(
                 let response = response.error_for_status();
                 match response {
                     Ok(response) => {
-                        let response = response.error_for_status();
-
                         info!("success: {:?}", response);
 
                         game_state.set(GameState::Game);

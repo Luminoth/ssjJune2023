@@ -48,7 +48,6 @@ pub fn generate_token_for_user(
     generate_token(&claims, secret)
 }
 
-#[allow(dead_code)]
 pub fn validate_token(token: impl AsRef<str>, secret: impl AsRef<[u8]>) -> anyhow::Result<String> {
     let mut validation = Validation::default();
     validation.set_issuer(&["ssjJune2023-issuer"]);

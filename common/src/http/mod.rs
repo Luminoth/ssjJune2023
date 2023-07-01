@@ -9,6 +9,8 @@ pub struct AuthenticateRequest {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AuthenticateResponse {
     pub token: String,
+
+    pub display_name: String,
 }
 
 #[derive(Debug, Serialize)]

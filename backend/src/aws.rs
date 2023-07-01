@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use aws_config::SdkConfig;
 use aws_sdk_dynamodb::{primitives::Blob, types::AttributeValue};
+use dynomite::FromAttributes;
 use tracing::info;
 
 use crate::user::User;
@@ -116,29 +117,33 @@ pub async fn get_queue_url(aws_config: &SdkConfig) -> anyhow::Result<String> {
         .to_owned())
 }
 
-#[allow(dead_code)]
-pub async fn get_user(_aws_config: &SdkConfig, _user_id: u64) -> anyhow::Result<User> {
-    // TODO: gotta figure out how to do this bit, ugh
-    /*let client = aws_sdk_dynamodb::Client::new(aws_config);
-    client
+pub async fn get_user(aws_config: &SdkConfig, user_id: u64) -> anyhow::Result<Option<User>> {
+    let client = aws_sdk_dynamodb::Client::new(aws_config);
+    let output = client
         .get_item()
         .table_name("ssj2023")
-       ...
+        .key("type".to_owned(), AttributeValue::S("user".to_owned()))
+        .key("id".to_owned(), AttributeValue::N(user_id.to_string()))
         .send()
-        .await?;*/
+        .await?;
 
-    anyhow::bail!("unsupported")
+    Ok(match output.item {
+        Some(i) => Some(User::from_attrs(i.to_rusoto())?),
+        None => None,
+    })
 }
 
-pub async fn save_user(_aws_config: &SdkConfig, _user: &User) -> anyhow::Result<()> {
-    // TODO: gotta figure out how to do this bit, ugh
-    /*let client = aws_sdk_dynamodb::Client::new(aws_config);
+pub async fn save_user(aws_config: &SdkConfig, user: User) -> anyhow::Result<()> {
+    let attributes: dynomite::Attributes = user.into();
+    let item = attributes.to_sdk();
+
+    let client = aws_sdk_dynamodb::Client::new(aws_config);
     client
         .put_item()
         .table_name("ssj2023")
-        .set_item(Some(user.key().into().to_sdk()))
+        .set_item(Some(item))
         .send()
-        .await?;*/
+        .await?;
 
     Ok(())
 }
@@ -155,7 +160,6 @@ pub async fn get_jwt_secret(aws_config: &SdkConfig) -> anyhow::Result<String> {
         .to_owned())
 }
 
-#[allow(dead_code)]
 pub async fn post_message(
     aws_config: &SdkConfig,
     queue_url: impl Into<String>,
