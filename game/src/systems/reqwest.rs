@@ -13,8 +13,14 @@ pub fn start_http_requests(
         let client = request.0 .0.clone();
         let request = request.0 .1.try_clone().unwrap();
 
-        let task =
-            runtime.spawn_background_task(|_ctx| async move { client.execute(request).await });
+        let task = runtime.spawn_background_task(|_ctx| async move {
+            client
+                .execute(request)
+                .await?
+                .error_for_status()?
+                .bytes()
+                .await
+        });
 
         commands
             .entity(entity)

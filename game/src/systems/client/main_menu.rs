@@ -96,24 +96,19 @@ pub fn wait_for_auth(
 
         match result {
             Ok(response) => {
-                let response = response.error_for_status();
-                match response {
-                    Ok(response) => {
-                        info!("success: {:?}", response);
+                info!("success: {:?}", response);
 
-                        game_state.set(GameState::Game);
+                // TODO: error handling
+                let _response = serde_json::from_slice::<AuthenticateResponse>(&response).unwrap();
 
-                        main_menu_state.set(MainMenuState::Init);
-                    }
-                    Err(err) => {
-                        error!("authentication error: {:?}", err);
+                // TODO: save off the response details
 
-                        main_menu_state.set(MainMenuState::WaitForLogin);
-                    }
-                }
+                game_state.set(GameState::Game);
+
+                main_menu_state.set(MainMenuState::Init);
             }
             Err(err) => {
-                error!("http client error: {:?}", err);
+                error!("http error: {:?}", err);
 
                 main_menu_state.set(MainMenuState::WaitForLogin);
             }

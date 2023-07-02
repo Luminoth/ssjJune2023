@@ -2502,11 +2502,13 @@ dependencies = [
  "bevy-inspector-egui",
  "bevy-tokio-tasks",
  "bevy_egui",
+ "bytes 1.4.0",
  "common",
  "futures-lite",
  "rand 0.8.5",
  "redis",
  "reqwest",
+ "serde_json",
  "tokio 1.28.2",
  "webbrowser",
 ]
