@@ -99,7 +99,8 @@ pub fn wait_for_auth(
                 info!("success: {:?}", response);
 
                 // TODO: error handling
-                let _response = serde_json::from_slice::<AuthenticateResponse>(&response).unwrap();
+                let response = serde_json::from_slice::<AuthenticateResponse>(&response).unwrap();
+                info!("got token {} for {}", response.token, response.display_name);
 
                 // TODO: save off the response details
 
