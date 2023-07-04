@@ -17,7 +17,7 @@ use axum::{
     routing::{get, post},
     Json, Router, TypedHeader,
 };
-use tower_http::cors::CorsLayer;
+use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tracing::{debug, info, Level};
 use tracing_subscriber::FmtSubscriber;
 use uuid::Uuid;
@@ -60,6 +60,7 @@ async fn main() -> anyhow::Result<()> {
                 .allow_headers([axum::http::header::CONTENT_TYPE])
                 .allow_methods([Method::OPTIONS, Method::HEAD, Method::GET, Method::POST]),
         )
+        .layer(TraceLayer::new_for_http())
         .with_state(aws_state);
 
     let app = app.fallback(handler_404);
@@ -86,7 +87,7 @@ async fn authenticate(
     info!("authenticating user ...");
 
     let mut user: User = itchio::get_user(&request.access_token).await?.into();
-    info!("authenticated user: {:?}", user);
+    info!("authenticated user: {}", user);
     user.set_api_key(request.access_token);
 
     aws::save_user(aws_state.get_config(), user.clone()).await?;
@@ -138,7 +139,7 @@ async fn create_duel(
         request.character_id
     );
 
-    let opponent_user_id = 1234;
+    let opponent_user_id = "1234";
     let opponent_character_id = Uuid::new_v4();
     let message = Message::new_duel(
         user.get_user_id(),

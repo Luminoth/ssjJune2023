@@ -5512,6 +5512,7 @@ dependencies = [
  "pin-project-lite 0.2.9",
  "tower-layer",
  "tower-service",
+ "tracing",
 ]
 
 [[package]]

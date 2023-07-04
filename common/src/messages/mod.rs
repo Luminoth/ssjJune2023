@@ -35,9 +35,9 @@ impl Message {
     }
 
     pub fn new_duel(
-        user_id: u64,
+        user_id: impl Into<String>,
         character_id: Uuid,
-        opponent_user_id: u64,
+        opponent_user_id: impl Into<String>,
         opponent_character_id: Uuid,
     ) -> Self {
         Self::Duel(Duel::new(

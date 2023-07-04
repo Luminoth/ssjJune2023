@@ -82,6 +82,7 @@ pub fn wait_for_oauth(
 pub fn wait_for_auth(
     mut commands: Commands,
     mut results: Query<(Entity, &mut ReqwestResult)>,
+    mut auth_token: ResMut<AuthenticationToken>,
     mut main_menu_state: ResMut<NextState<MainMenuState>>,
     mut game_state: ResMut<NextState<GameState>>,
     mut contexts: EguiContexts,
@@ -114,6 +115,8 @@ pub fn wait_for_auth(
                 main_menu_state.set(MainMenuState::WaitForLogin);
             }
         }
+
+        auth_token.0.clear();
 
         commands.entity(entity).despawn_recursive();
     }
