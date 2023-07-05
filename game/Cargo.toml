@@ -19,6 +19,7 @@ bevy-inspector-egui = { version = "0.18", optional = true }
 bevy-tokio-tasks = "0.10"
 bytes = "1.1.0"
 futures-lite = "1.13"
+hyper = "0.14"
 rand = "0.8"
 redis = { version = "0.23", optional = true }
 reqwest = { version = "0.11", features = ["json"] }

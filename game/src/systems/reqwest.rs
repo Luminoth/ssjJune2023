@@ -4,6 +4,9 @@ use futures_lite::future;
 
 use crate::components::reqwest::*;
 
+// TODO: instead of using error_for_status,
+// we probably want to pass the status back to the handler
+
 pub fn start_http_requests(
     mut commands: Commands,
     mut requests: Query<(Entity, &mut ReqwestRequest), Added<ReqwestRequest>>,

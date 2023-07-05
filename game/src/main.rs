@@ -108,7 +108,8 @@ fn main() {
     }
 
     // shared plugins
-    app.add_plugin(plugins::reqwest::ReqwestPlugin);
+    app.add_plugin(plugins::reqwest::ReqwestPlugin)
+        .add_plugin(plugins::hyper::HyperPlugin);
 
     // shared resources
     app.insert_resource(Random::default());

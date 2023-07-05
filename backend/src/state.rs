@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use aws_config::SdkConfig;
 
 #[derive(Debug, Clone)]

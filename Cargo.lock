@@ -2505,6 +2505,7 @@ dependencies = [
  "bytes 1.4.0",
  "common",
  "futures-lite",
+ "hyper 0.14.26",
  "rand 0.8.5",
  "redis",
  "reqwest",
