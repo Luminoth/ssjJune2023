@@ -12,17 +12,22 @@ use crate::components::hyper::*;
 
 async fn http_request_handler(
     req: Request<Body>,
-    //mut ctx: TaskContext,
+    mut ctx: TaskContext,
 ) -> Result<Response<Body>, hyper::Error> {
     match (req.method(), req.uri().path()) {
         (&Method::POST, "/") => {
-            /*ctx.run_on_main_thread(|_ctx| {
-                //ctx.world.blah();
-            });*/
+            info!("got POST to '/'");
 
-            Ok(Response::new(req.into_body()))
+            ctx.run_on_main_thread(|_ctx| {
+                info!("hello main thread!");
+            })
+            .await;
+
+            Ok(Response::default())
         }
         _ => {
+            info!("http listener returning not found");
+
             let mut not_found = Response::default();
             *not_found.status_mut() = StatusCode::NOT_FOUND;
             Ok(not_found)
@@ -38,20 +43,22 @@ pub fn start_http_listener(
     for (entity, request) in requests.iter_mut() {
         let port = request.0;
 
-        let task = runtime.spawn_background_task(move |_ctx| async move {
+        let task = runtime.spawn_background_task(move |ctx| async move {
             let addr = ([127, 0, 0, 1], port).into();
 
-            // TODO: how do I get ctx passed into this?
-            // no amount of cloning it seems to pass the test
-            let service = make_service_fn(|_| async {
-                Ok::<_, hyper::Error>(service_fn(|req| {
-                    http_request_handler(req /*, ctx*/)
-                }))
+            let service = make_service_fn(move |_| {
+                let ctx = ctx.clone();
+                async move {
+                    Ok::<_, hyper::Error>(service_fn(move |req| {
+                        let ctx = ctx.clone();
+                        http_request_handler(req, ctx)
+                    }))
+                }
             });
 
             let server = Server::bind(&addr).serve(service);
 
-            println!("Listening on http://{}", addr);
+            info!("listening on http://{}", addr);
 
             server.await?;
 
