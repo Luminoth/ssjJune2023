@@ -3,7 +3,7 @@ use bevy_egui::{egui, EguiContexts};
 
 use common::http::*;
 
-use crate::components::{client::main_menu::*, reqwest::*};
+use crate::components::{client::main_menu::*, hyper::*, reqwest::*};
 use crate::plugins::client::main_menu::*;
 use crate::resources::client::main_menu::*;
 use crate::states::GameState;
@@ -14,6 +14,8 @@ pub fn enter(mut commands: Commands, mut main_menu_state: ResMut<NextState<MainM
     commands.insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)));
     commands.spawn((Camera2dBundle::default(), OnMainMenu));
 
+    commands.spawn(StartHyperListener(5000));
+
     commands.insert_resource(AuthenticationToken(String::default()));
 
     main_menu_state.set(MainMenuState::WaitForLogin);
@@ -21,6 +23,8 @@ pub fn enter(mut commands: Commands, mut main_menu_state: ResMut<NextState<MainM
 
 pub fn exit(mut commands: Commands) {
     info!("exiting MainMenu state");
+
+    commands.spawn(StopHyperListener(5000));
 
     commands.remove_resource::<AuthenticationToken>();
 }
@@ -32,7 +36,7 @@ pub fn wait_for_login(
     egui::Window::new("Authentication").show(contexts.ctx_mut(), |ui| {
         ui.horizontal(|ui| {
             if ui.button("Login").clicked() {
-                webbrowser::open("https://itch.io/user/oauth?client_id=11608a8d9cd812ac0651da4dc2f9f484&scope=profile%3Ame&response_type=token&redirect_uri=urn%3Aietf%3Awg%3Aoauth%3A2.0%3Aoob").unwrap();
+                webbrowser::open("https://itch.io/user/oauth?client_id=11608a8d9cd812ac0651da4dc2f9f484&scope=profile%3Ame&response_type=token&redirect_uri=http%3A%2F%2F127.0.0.1%3A5000").unwrap();
 
                 main_menu_state.set(MainMenuState::WaitForOAuth);
             }
