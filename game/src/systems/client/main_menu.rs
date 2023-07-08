@@ -24,7 +24,7 @@ async fn auth_request_handler(
 ) -> Result<Response<Body>, hyper::Error> {
     match (req.method(), req.uri().path()) {
         (&Method::GET, "/") => {
-            info!("got GET to '/': {:?}", req);
+            debug!("got GET to '/': {:?}", req);
 
             /*
             itch puts the token in the path fragment even when using loopback
@@ -68,22 +68,27 @@ async fn auth_request_handler(
             ))
         }
         (&Method::POST, "/") => {
-            info!("got POST to '/': {:?}", req);
+            debug!("got POST to '/': {:?}", req);
 
             // TODO: error handling
             let body = hyper::body::to_bytes(req.into_body()).await.unwrap();
             let request: AccessTokenRequest =
                 serde_json::from_slice(body.to_vec().as_slice()).unwrap();
 
-            ctx.run_on_main_thread(move |_ctx| {
-                info!("got access token: {}", request.access_token);
+            ctx.run_on_main_thread(move |ctx| {
+                debug!("got access token: {}", request.access_token);
+
+                ctx.world
+                    .get_resource_mut::<AuthenticationToken>()
+                    .unwrap()
+                    .0 = request.access_token;
             })
             .await;
 
             Ok(Response::default())
         }
         _ => {
-            info!("http listener returning not found: {:?}", req);
+            debug!("http listener returning not found: {:?}", req);
 
             let mut not_found = Response::default();
             *not_found.status_mut() = StatusCode::NOT_FOUND;
@@ -97,6 +102,8 @@ pub fn enter(mut commands: Commands, mut main_menu_state: ResMut<NextState<MainM
 
     commands.insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)));
     commands.spawn((Camera2dBundle::default(), OnMainMenu));
+
+    // TODO: if we have a token saved in storage, try that first
 
     commands.spawn(StartHyperListener((
         5000,
@@ -124,6 +131,9 @@ pub fn wait_for_login(
     egui::Window::new("Authentication").show(contexts.ctx_mut(), |ui| {
         ui.horizontal(|ui| {
             if ui.button("Login").clicked() {
+                // TODO: if we were unable to start the listener
+                // we should have this redirect to 'urn:ietf:wg:oauth:2.0:oob' instead
+                // and show an input prompt for the token
                 webbrowser::open("https://itch.io/user/oauth?client_id=11608a8d9cd812ac0651da4dc2f9f484&scope=profile%3Ame&response_type=token&redirect_uri=http%3A%2F%2F127.0.0.1%3A5000").unwrap();
 
                 main_menu_state.set(MainMenuState::WaitForOAuth);
@@ -134,12 +144,14 @@ pub fn wait_for_login(
 
 pub fn wait_for_oauth(
     mut commands: Commands,
-    mut auth_token: ResMut<AuthenticationToken>,
+    auth_token: ResMut<AuthenticationToken>,
     mut main_menu_state: ResMut<NextState<MainMenuState>>,
     mut contexts: EguiContexts,
 ) {
     egui::Window::new("Authentication").show(contexts.ctx_mut(), |ui| {
-        ui.horizontal(|ui| {
+        ui.label("Waiting for authorization ...");
+
+        /*ui.horizontal(|ui| {
             ui.label("Enter authentication token:");
             ui.text_edit_singleline(&mut auth_token.0);
         });
@@ -167,8 +179,24 @@ pub fn wait_for_oauth(
                 auth_token.0.clear();
                 main_menu_state.set(MainMenuState::WaitForLogin);
             }
-        });
+        });*/
     });
+
+    if !auth_token.0.trim().is_empty() {
+        let client = reqwest::Client::new();
+
+        let request = client
+            .post("http://localhost:3000/authenticate")
+            .json(&AuthenticateRequest {
+                access_token: auth_token.0.clone(),
+            })
+            .build()
+            .unwrap();
+
+        commands.spawn(ReqwestRequest((client, request)));
+
+        main_menu_state.set(MainMenuState::WaitForAuth);
+    }
 }
 
 pub fn wait_for_auth(
@@ -195,7 +223,7 @@ pub fn wait_for_auth(
                 let response = serde_json::from_slice::<AuthenticateResponse>(&response).unwrap();
                 info!("got token {} for {}", response.token, response.display_name);
 
-                // TODO: save off the response details
+                // TODO: save off the token
 
                 game_state.set(GameState::Game);
 

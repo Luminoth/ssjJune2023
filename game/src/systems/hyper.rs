@@ -40,7 +40,7 @@ pub fn start_http_listeners(
             let server = Server::bind(&addr).serve(service);
             let graceful = server.with_graceful_shutdown(shutdown_signal());
 
-            info!("listening on http://{}", addr);
+            debug!("listening on http://{}", addr);
 
             graceful.await?;
 
@@ -63,7 +63,7 @@ pub fn stop_http_listeners(
     for (entity, request) in requests.iter_mut() {
         for (_, task) in tasks.iter_mut() {
             if task.0 .0 == request.0 {
-                info!("stopping listener on port {}", request.0);
+                debug!("stopping listener on port {}", request.0);
 
                 // TODO: signal the channel to shutdown the listener
             }
@@ -78,6 +78,7 @@ pub fn poll_http_listeners(mut commands: Commands, mut tasks: Query<(Entity, &mu
             // TODO: error handling
             let _response = response.unwrap();
 
+            // TODO: debug log
             info!("hyper listener on port {} shut down", task.0 .0);
 
             commands.entity(entity).remove::<HyperTask>();
