@@ -1,5 +1,9 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
+use bevy_tokio_tasks::TaskContext;
+use futures_lite::future::FutureExt;
+use hyper::{Body, Method, Request, Response, StatusCode};
+use serde::Deserialize;
 
 use common::http::*;
 
@@ -8,13 +12,97 @@ use crate::plugins::client::main_menu::*;
 use crate::resources::client::main_menu::*;
 use crate::states::GameState;
 
+#[derive(Debug, Deserialize)]
+struct AccessTokenRequest {
+    pub access_token: String,
+}
+
+async fn auth_request_handler(
+    port: u16,
+    req: Request<Body>,
+    mut ctx: TaskContext,
+) -> Result<Response<Body>, hyper::Error> {
+    match (req.method(), req.uri().path()) {
+        (&Method::GET, "/") => {
+            info!("got GET to '/': {:?}", req);
+
+            /*
+            itch puts the token in the path fragment even when using loopback
+            browsers don't send that over to us so we need some javascript
+            to pull it out and re-POST it to us
+
+            TODO: is there really not a better way to do this??
+            */
+
+            Ok(Response::new(
+                format!(
+                    "<!DOCTYPE html>
+<html lang=\"en-US\">
+<head>
+    <meta charset=\"UTF-8\">
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
+    <title>Success</title>
+    <script>
+        var queryString = window.location.hash.slice(1);
+        var params = new URLSearchParams(queryString);
+        var accessToken = params.get('access_token');
+        fetch('http://127.0.0.1:{}', {{
+            method: 'POST',
+            headers: {{
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }},
+            body: JSON.stringify({{ 'access_token': accessToken }})
+        }})
+        .then(response => response.json())
+        .then(response => console.log(JSON.stringify(response)));
+    </script>
+</head>
+<body>
+    <div>You can close this window now!</div>
+</body>
+</html>",
+                    port
+                )
+                .into(),
+            ))
+        }
+        (&Method::POST, "/") => {
+            info!("got POST to '/': {:?}", req);
+
+            // TODO: error handling
+            let body = hyper::body::to_bytes(req.into_body()).await.unwrap();
+            let request: AccessTokenRequest =
+                serde_json::from_slice(body.to_vec().as_slice()).unwrap();
+
+            ctx.run_on_main_thread(move |_ctx| {
+                info!("got access token: {}", request.access_token);
+            })
+            .await;
+
+            Ok(Response::default())
+        }
+        _ => {
+            info!("http listener returning not found: {:?}", req);
+
+            let mut not_found = Response::default();
+            *not_found.status_mut() = StatusCode::NOT_FOUND;
+            Ok(not_found)
+        }
+    }
+}
+
 pub fn enter(mut commands: Commands, mut main_menu_state: ResMut<NextState<MainMenuState>>) {
     info!("entering MainMenu state");
 
     commands.insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)));
     commands.spawn((Camera2dBundle::default(), OnMainMenu));
 
-    commands.spawn(StartHyperListener(5000));
+    commands.spawn(StartHyperListener((
+        5000,
+        // TODO: this should be cleaned up
+        std::sync::Arc::new(move |port, req, ctx| auth_request_handler(port, req, ctx).boxed()),
+    )));
 
     commands.insert_resource(AuthenticationToken(String::default()));
 

@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_tokio_tasks::*;
+use bevy_tokio_tasks::TokioTasksRuntime;
 use futures_lite::future;
 
 use crate::components::reqwest::*;

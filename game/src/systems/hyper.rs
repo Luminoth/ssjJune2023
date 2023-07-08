@@ -1,9 +1,9 @@
 use bevy::prelude::*;
-use bevy_tokio_tasks::*;
+use bevy_tokio_tasks::TokioTasksRuntime;
 use futures_lite::future;
 use hyper::{
     service::{make_service_fn, service_fn},
-    Body, Method, Request, Response, Server, StatusCode,
+    Server,
 };
 
 use crate::components::hyper::*;
@@ -13,57 +13,26 @@ async fn shutdown_signal() {
     tokio::time::sleep(tokio::time::Duration::from_millis(68719476734)).await;
 }
 
-async fn http_request_handler(
-    req: Request<Body>,
-    mut ctx: TaskContext,
-) -> Result<Response<Body>, hyper::Error> {
-    match (req.method(), req.uri().path()) {
-        (&Method::GET, "/") => {
-            // TODO: no token to be found here, need to serve up a page
-            // that gets the token and then feeds it back in on another route
-
-            /*
-            var queryString = window.location.hash.slice(1);
-            var params = new URLSearchParams(queryString);
-            var accessToken = params.get("access_token");
-            */
-
-            info!("got GET to '/': {:?}", req.uri());
-
-            ctx.run_on_main_thread(|_ctx| {
-                info!("GET on main thread!");
-            })
-            .await;
-
-            Ok(Response::default())
-        }
-        _ => {
-            info!("http listener returning not found: {:?}", req);
-
-            let mut not_found = Response::default();
-            *not_found.status_mut() = StatusCode::NOT_FOUND;
-            Ok(not_found)
-        }
-    }
-}
-
 pub fn start_http_listeners(
     mut commands: Commands,
     mut requests: Query<(Entity, &mut StartHyperListener), Added<StartHyperListener>>,
     runtime: Res<TokioTasksRuntime>,
 ) {
     for (entity, request) in requests.iter_mut() {
-        let port = request.0;
+        let port = request.0 .0;
+        let request_handler = request.0 .1.clone();
 
         let task = runtime.spawn_background_task(move |ctx| async move {
             let addr = ([127, 0, 0, 1], port).into();
 
             let service = make_service_fn(move |_| {
                 let ctx = ctx.clone();
+                let request_handler = request_handler.clone();
                 async move {
                     Ok::<_, hyper::Error>(service_fn(move |req| {
                         let ctx = ctx.clone();
-                        http_request_handler(req, ctx)
+                        let request_handler = request_handler.clone();
+                        (request_handler)(port, req, ctx)
                     }))
                 }
             });

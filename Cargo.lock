@@ -2509,6 +2509,7 @@ dependencies = [
  "rand 0.8.5",
  "redis",
  "reqwest",
+ "serde",
  "serde_json",
  "tokio 1.28.2",
  "webbrowser",
