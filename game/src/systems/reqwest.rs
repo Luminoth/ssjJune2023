@@ -11,10 +11,10 @@ use crate::components::reqwest::*;
 
 pub fn start_http_requests(
     mut commands: Commands,
-    mut requests: Query<(Entity, &mut ReqwestRequest), Added<ReqwestRequest>>,
+    requests: Query<(Entity, &ReqwestRequest), Added<ReqwestRequest>>,
     runtime: Res<TokioTasksRuntime>,
 ) {
-    for (entity, request) in requests.iter_mut() {
+    for (entity, request) in requests.iter() {
         let client = request.0 .0.clone();
         let request = request.0 .1.try_clone().unwrap();
 

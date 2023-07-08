@@ -5,22 +5,25 @@ use hyper::{
     service::{make_service_fn, service_fn},
     Server,
 };
+use tokio::sync::oneshot;
 
 use crate::components::hyper::*;
 
-async fn shutdown_signal() {
-    // TODO: replace this with a channel
-    tokio::time::sleep(tokio::time::Duration::from_millis(68719476734)).await;
+async fn shutdown_signal(rx: oneshot::Receiver<bool>) {
+    // TODO: error handling
+    rx.await.unwrap();
 }
 
 pub fn start_http_listeners(
     mut commands: Commands,
-    mut requests: Query<(Entity, &mut StartHyperListener), Added<StartHyperListener>>,
+    requests: Query<(Entity, &StartHyperListener), Added<StartHyperListener>>,
     runtime: Res<TokioTasksRuntime>,
 ) {
-    for (entity, request) in requests.iter_mut() {
+    for (entity, request) in requests.iter() {
         let port = request.0 .0;
         let request_handler = request.0 .1.clone();
+
+        let (tx, rx) = oneshot::channel();
 
         let task = runtime.spawn_background_task(move |ctx| async move {
             let addr = ([127, 0, 0, 1], port).into();
@@ -38,7 +41,7 @@ pub fn start_http_listeners(
             });
 
             let server = Server::bind(&addr).serve(service);
-            let graceful = server.with_graceful_shutdown(shutdown_signal());
+            let graceful = server.with_graceful_shutdown(shutdown_signal(rx));
 
             debug!("listening on http://{}", addr);
 
@@ -49,23 +52,25 @@ pub fn start_http_listeners(
 
         commands
             .entity(entity)
-            .insert(HyperTask((port, task)))
+            .insert(HyperTask((port, Some(tx), task)))
             .remove::<StartHyperListener>();
     }
 }
 
 pub fn stop_http_listeners(
     mut commands: Commands,
-    mut requests: Query<(Entity, &mut StopHyperListener), Added<StopHyperListener>>,
+    requests: Query<(Entity, &StopHyperListener), Added<StopHyperListener>>,
     mut tasks: Query<(Entity, &mut HyperTask)>,
-    //runtime: Res<TokioTasksRuntime>,
 ) {
-    for (entity, request) in requests.iter_mut() {
-        for (_, task) in tasks.iter_mut() {
+    for (entity, request) in requests.iter() {
+        for (_, mut task) in tasks.iter_mut() {
             if task.0 .0 == request.0 {
                 debug!("stopping listener on port {}", request.0);
 
-                // TODO: signal the channel to shutdown the listener
+                if let Some(tx) = task.0 .1.take() {
+                    // TODO: error handling
+                    tx.send(true).unwrap();
+                }
             }
         }
         commands.entity(entity).despawn();
@@ -74,7 +79,7 @@ pub fn stop_http_listeners(
 
 pub fn poll_http_listeners(mut commands: Commands, mut tasks: Query<(Entity, &mut HyperTask)>) {
     for (entity, mut task) in tasks.iter_mut() {
-        if let Some(response) = future::block_on(future::poll_once(&mut task.0 .1)) {
+        if let Some(response) = future::block_on(future::poll_once(&mut task.0 .2)) {
             // TODO: error handling
             let _response = response.unwrap();
 

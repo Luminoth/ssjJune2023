@@ -6,10 +6,10 @@ use crate::components::server::aws::*;
 
 pub fn start_load_aws_config_requests(
     mut commands: Commands,
-    mut requests: Query<(Entity, &mut LoadAwsConfigRequest), Added<LoadAwsConfigRequest>>,
+    requests: Query<(Entity, &LoadAwsConfigRequest), Added<LoadAwsConfigRequest>>,
     runtime: Res<TokioTasksRuntime>,
 ) {
-    for (entity, _) in requests.iter_mut() {
+    for (entity, _) in requests.iter() {
         info!("loading AWS config...");
 
         let task =
@@ -43,10 +43,10 @@ pub fn poll_load_aws_config_requests(
 
 pub fn start_sqs_get_queue_url_requests(
     mut commands: Commands,
-    mut requests: Query<(Entity, &mut SQSGetQueueUrlRequest), Added<SQSGetQueueUrlRequest>>,
+    requests: Query<(Entity, &SQSGetQueueUrlRequest), Added<SQSGetQueueUrlRequest>>,
     runtime: Res<TokioTasksRuntime>,
 ) {
-    for (entity, request) in requests.iter_mut() {
+    for (entity, request) in requests.iter() {
         let client = request.0 .0.clone();
         let queue_name = request.0 .1.clone();
 
@@ -82,10 +82,10 @@ pub fn poll_sqs_get_url_requests(
 
 pub fn start_sqs_receive_message_requests(
     mut commands: Commands,
-    mut requests: Query<(Entity, &mut SQSReceiveMessageRequest), Added<SQSReceiveMessageRequest>>,
+    requests: Query<(Entity, &SQSReceiveMessageRequest), Added<SQSReceiveMessageRequest>>,
     runtime: Res<TokioTasksRuntime>,
 ) {
-    for (entity, request) in requests.iter_mut() {
+    for (entity, request) in requests.iter() {
         let client = request.0 .0.clone();
         let queue_url = request.0 .1.clone();
 
@@ -121,10 +121,10 @@ pub fn poll_sqs_receive_message_requests(
 
 pub fn start_sqs_delete_message_requests(
     mut commands: Commands,
-    mut requests: Query<(Entity, &mut SQSDeleteMessageRequest), Added<SQSDeleteMessageRequest>>,
+    requests: Query<(Entity, &SQSDeleteMessageRequest), Added<SQSDeleteMessageRequest>>,
     runtime: Res<TokioTasksRuntime>,
 ) {
-    for (entity, request) in requests.iter_mut() {
+    for (entity, request) in requests.iter() {
         let client = request.0 .0.clone();
         let queue_url = request.0 .1.clone();
         let message_reciept_handle = request.0 .2.clone();
