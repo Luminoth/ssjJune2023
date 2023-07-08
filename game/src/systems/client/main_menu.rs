@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
+use bevy_persistent::prelude::*;
 use bevy_tokio_tasks::TaskContext;
 use futures_lite::future::FutureExt;
 use hyper::{Body, Method, Request, Response, StatusCode};
@@ -79,9 +80,11 @@ async fn auth_request_handler(
                 debug!("got access token: {}", request.access_token);
 
                 ctx.world
-                    .get_resource_mut::<Authorization>()
+                    .get_resource_mut::<Persistent<Authorization>>()
                     .unwrap()
-                    .access_token = request.access_token;
+                    .update(|auth| {
+                        auth.access_token = request.access_token.clone();
+                    });
             })
             .await;
 
@@ -111,7 +114,17 @@ pub fn enter(mut commands: Commands, mut main_menu_state: ResMut<NextState<MainM
         std::sync::Arc::new(move |port, req, ctx| auth_request_handler(port, req, ctx).boxed()),
     )));
 
-    commands.insert_resource(Authorization::default());
+    let config_dir = dirs::config_dir()
+        .map(|native_config_dir| native_config_dir.join("ssj2023"))
+        .unwrap_or(std::path::Path::new("local").join("configuration"));
+    commands.insert_resource(
+        Persistent::<Authorization>::builder()
+            .name("authorization")
+            .format(StorageFormat::Ini)
+            .path(config_dir.join("authorization.ini"))
+            .default(Authorization::default())
+            .build(),
+    );
 
     main_menu_state.set(MainMenuState::WaitForLogin);
 }
@@ -121,13 +134,16 @@ pub fn exit(mut commands: Commands) {
 
     commands.spawn(StopHyperListener(5000));
 
-    commands.remove_resource::<Authorization>();
+    commands.remove_resource::<Persistent<Authorization>>();
 }
 
 pub fn wait_for_login(
     mut main_menu_state: ResMut<NextState<MainMenuState>>,
     mut contexts: EguiContexts,
 ) {
+    // TODO: if we have our API key (from an authorization but safe-failed authenticationed)
+    // skip re-opening the browser and just move on to submitting the authentication request
+
     egui::Window::new("Authentication").show(contexts.ctx_mut(), |ui| {
         ui.horizontal(|ui| {
             if ui.button("Login").clicked() {
@@ -144,7 +160,7 @@ pub fn wait_for_login(
 
 pub fn wait_for_oauth(
     mut commands: Commands,
-    auth_token: ResMut<Authorization>,
+    auth_token: ResMut<Persistent<Authorization>>,
     mut main_menu_state: ResMut<NextState<MainMenuState>>,
     mut contexts: EguiContexts,
 ) {
@@ -202,7 +218,7 @@ pub fn wait_for_oauth(
 pub fn wait_for_auth(
     mut commands: Commands,
     mut results: Query<(Entity, &mut ReqwestResult)>,
-    mut auth_token: ResMut<Authorization>,
+    mut auth_token: ResMut<Persistent<Authorization>>,
     mut main_menu_state: ResMut<NextState<MainMenuState>>,
     mut game_state: ResMut<NextState<GameState>>,
     mut contexts: EguiContexts,
