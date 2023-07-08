@@ -9,7 +9,7 @@ use common::http::*;
 
 use crate::components::{client::main_menu::*, hyper::*, reqwest::*};
 use crate::plugins::client::main_menu::*;
-use crate::resources::client::main_menu::*;
+use crate::resources::client::*;
 use crate::states::GameState;
 
 #[derive(Debug, Deserialize)]
@@ -79,9 +79,9 @@ async fn auth_request_handler(
                 debug!("got access token: {}", request.access_token);
 
                 ctx.world
-                    .get_resource_mut::<AuthenticationToken>()
+                    .get_resource_mut::<Authorization>()
                     .unwrap()
-                    .0 = request.access_token;
+                    .access_token = request.access_token;
             })
             .await;
 
@@ -111,7 +111,7 @@ pub fn enter(mut commands: Commands, mut main_menu_state: ResMut<NextState<MainM
         std::sync::Arc::new(move |port, req, ctx| auth_request_handler(port, req, ctx).boxed()),
     )));
 
-    commands.insert_resource(AuthenticationToken(String::default()));
+    commands.insert_resource(Authorization::default());
 
     main_menu_state.set(MainMenuState::WaitForLogin);
 }
@@ -121,7 +121,7 @@ pub fn exit(mut commands: Commands) {
 
     commands.spawn(StopHyperListener(5000));
 
-    commands.remove_resource::<AuthenticationToken>();
+    commands.remove_resource::<Authorization>();
 }
 
 pub fn wait_for_login(
@@ -144,7 +144,7 @@ pub fn wait_for_login(
 
 pub fn wait_for_oauth(
     mut commands: Commands,
-    auth_token: ResMut<AuthenticationToken>,
+    auth_token: ResMut<Authorization>,
     mut main_menu_state: ResMut<NextState<MainMenuState>>,
     mut contexts: EguiContexts,
 ) {
@@ -153,18 +153,18 @@ pub fn wait_for_oauth(
 
         /*ui.horizontal(|ui| {
             ui.label("Enter authentication token:");
-            ui.text_edit_singleline(&mut auth_token.0);
+            ui.text_edit_singleline(&mut auth_token.access_token);
         });
 
         ui.horizontal(|ui| {
-            ui.add_enabled_ui(!auth_token.0.trim().is_empty(), |ui| {
+            ui.add_enabled_ui(!auth_token.access_token.trim().is_empty(), |ui| {
                 if ui.button("Ok").clicked() {
                     let client = reqwest::Client::new();
 
                     let request = client
                         .post("http://localhost:3000/authenticate")
                         .json(&AuthenticateRequest {
-                            access_token: auth_token.0.clone(),
+                            access_token: auth_token.access_token.clone(),
                         })
                         .build()
                         .unwrap();
@@ -176,19 +176,19 @@ pub fn wait_for_oauth(
             });
 
             if ui.button("Cancel").clicked() {
-                auth_token.0.clear();
+                auth_token.access_token.clear();
                 main_menu_state.set(MainMenuState::WaitForLogin);
             }
         });*/
     });
 
-    if !auth_token.0.trim().is_empty() {
+    if !auth_token.access_token.trim().is_empty() {
         let client = reqwest::Client::new();
 
         let request = client
             .post("http://localhost:3000/authenticate")
             .json(&AuthenticateRequest {
-                access_token: auth_token.0.clone(),
+                access_token: auth_token.access_token.clone(),
             })
             .build()
             .unwrap();
@@ -202,7 +202,7 @@ pub fn wait_for_oauth(
 pub fn wait_for_auth(
     mut commands: Commands,
     mut results: Query<(Entity, &mut ReqwestResult)>,
-    mut auth_token: ResMut<AuthenticationToken>,
+    mut auth_token: ResMut<Authorization>,
     mut main_menu_state: ResMut<NextState<MainMenuState>>,
     mut game_state: ResMut<NextState<GameState>>,
     mut contexts: EguiContexts,
@@ -236,7 +236,7 @@ pub fn wait_for_auth(
             }
         }
 
-        auth_token.0.clear();
+        auth_token.access_token.clear();
 
         commands.entity(entity).despawn_recursive();
     }

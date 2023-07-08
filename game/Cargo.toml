@@ -16,6 +16,7 @@ aws-sdk-sqs = { version = "0.28", optional = true }
 bevy = { version = "0.10", default-features = false }
 bevy_egui = { version = "0.20", optional = true }
 bevy-inspector-egui = { version = "0.18", optional = true }
+bevy-persistent = { version = "0.2", features = ["ini"], optional = true }
 bevy-tokio-tasks = "0.10"
 bytes = "1.1.0"
 futures-lite = "1.13"
@@ -33,5 +34,11 @@ path = "../common"
 
 [features]
 default = ["client"]
-client = ["bevy/default", "bevy_egui", "bevy-inspector-egui", "webbrowser"]
+client = [
+    "bevy/default",
+    "bevy_egui",
+    "bevy-inspector-egui",
+    "bevy-persistent",
+    "webbrowser",
+]
 server = ["aws-config", "aws-sdk-sqs", "redis"]
