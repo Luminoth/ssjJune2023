@@ -8,9 +8,11 @@ pub struct SplashPlugin;
 
 impl Plugin for SplashPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(enter.in_schedule(OnEnter(GameState::Splash)))
-            .add_system(countdown.in_set(OnUpdate(GameState::Splash)))
-            .add_system(exit.in_schedule(OnExit(GameState::Splash)))
-            .add_system(cleanup_state::<OnSplashScreen>.in_schedule(OnExit(GameState::Splash)));
+        app.add_systems(OnEnter(GameState::Splash), enter)
+            .add_systems(Update, countdown.run_if(in_state(GameState::Splash)))
+            .add_systems(
+                OnExit(GameState::Splash),
+                (exit, cleanup_state::<OnSplashScreen>),
+            );
     }
 }

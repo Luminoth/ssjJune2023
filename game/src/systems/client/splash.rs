@@ -19,8 +19,9 @@ pub fn enter(mut commands: Commands, asset_server: Res<AssetServer>) {
         .spawn((
             NodeBundle {
                 style: Style {
+                    align_items: AlignItems::Center,
                     justify_content: JustifyContent::Center,
-                    size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
+                    width: Val::Percent(100.0),
                     ..default()
                 },
                 ..default()
@@ -30,7 +31,7 @@ pub fn enter(mut commands: Commands, asset_server: Res<AssetServer>) {
         .with_children(|parent| {
             parent.spawn(ImageBundle {
                 style: Style {
-                    size: Size::new(Val::Px(200.0), Val::Auto),
+                    width: Val::Px(200.0),
                     ..default()
                 },
                 image: UiImage::new(image),

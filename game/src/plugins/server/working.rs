@@ -18,9 +18,11 @@ pub struct WorkingPlugin;
 impl Plugin for WorkingPlugin {
     fn build(&self, app: &mut App) {
         app.add_state::<WorkingState>()
-            .add_system(enter.in_schedule(OnEnter(GameState::Working)))
-            .add_systems((duel.in_set(OnUpdate(WorkingState::Duel)),))
-            .add_system(exit.in_schedule(OnExit(GameState::Working)))
-            .add_system(cleanup_state::<OnWorking>.in_schedule(OnExit(GameState::Working)));
+            .add_systems(OnEnter(GameState::Working), enter)
+            .add_systems(Update, duel.run_if(in_state(WorkingState::Duel)))
+            .add_systems(
+                OnExit(GameState::Working),
+                (exit, cleanup_state::<OnWorking>),
+            );
     }
 }

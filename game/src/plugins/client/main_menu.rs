@@ -18,11 +18,18 @@ pub struct MainMenuPlugin;
 impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_state::<MainMenuState>()
-            .add_system(enter.in_schedule(OnEnter(GameState::MainMenu)))
-            .add_systems((wait_for_login.in_set(OnUpdate(MainMenuState::WaitForLogin)),))
-            .add_systems((wait_for_oauth.in_set(OnUpdate(MainMenuState::WaitForOAuth)),))
-            .add_systems((wait_for_auth.in_set(OnUpdate(MainMenuState::WaitForAuth)),))
-            .add_system(exit.in_schedule(OnExit(GameState::MainMenu)))
-            .add_system(cleanup_state::<OnMainMenu>.in_schedule(OnExit(GameState::MainMenu)));
+            .add_systems(OnEnter(GameState::MainMenu), enter)
+            .add_systems(
+                Update,
+                (
+                    wait_for_login.run_if(in_state(MainMenuState::WaitForLogin)),
+                    wait_for_oauth.run_if(in_state(MainMenuState::WaitForOAuth)),
+                    wait_for_auth.run_if(in_state(MainMenuState::WaitForAuth)),
+                ),
+            )
+            .add_systems(
+                OnExit(GameState::MainMenu),
+                (exit, cleanup_state::<OnMainMenu>),
+            );
     }
 }
