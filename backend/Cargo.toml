@@ -12,11 +12,11 @@ aws-sdk-sqs = "0.28"
 aws-sdk-secretsmanager = "0.28"
 aws-sdk-dynamodb = "0.28"
 chrono = "0.4"
-dynomite = { version = "0.10", default-features = false, features = ["rustls"] }
 jsonwebtoken = "8.3"
 redis = "0.23"
 reqwest = "0.11"
 serde = "1.0"
+serde_dynamo = { version = "4.2", features = ["aws-sdk-dynamodb+0_28"] }
 tokio = { version = "1.29", features = ["full"] }
 tower-http = { version = "0.4", features = ["cors", "trace"] }
 tracing = "0.1"

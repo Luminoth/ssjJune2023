@@ -4,15 +4,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::itchio;
 
-#[derive(Debug, Clone, Serialize, Deserialize, dynomite::Item)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct User {
-    #[serde(skip)]
-    #[dynomite(partition_key)]
-    #[dynomite(rename = "type")]
-    r#type: String,
-
-    #[dynomite(sort_key)]
-    #[dynomite(rename = "id")]
+    #[serde(rename = "id")]
     user_id: String,
 
     display_name: String,
@@ -30,7 +24,6 @@ impl From<itchio::User> for User {
         let display_name = user.display_name.unwrap_or_else(|| user.username.clone());
 
         Self {
-            r#type: "user".to_owned(),
             user_id: user.id.to_string(),
             display_name,
             api_key: String::default(),
@@ -47,6 +40,7 @@ impl User {
         &self.display_name
     }
 
+    #[allow(dead_code)]
     pub fn get_api_key(&self) -> &String {
         &self.api_key
     }
