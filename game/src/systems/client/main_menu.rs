@@ -102,6 +102,8 @@ pub fn wait_for_auth(
         ui.label("Waiting for authentication ...");
     });
 
+    // TODO: after auth success we need to get our user
+
     if let Ok((entity, mut result)) = results.get_single_mut() {
         // TODO: error handling
         let result = result.0.take().unwrap();
@@ -114,9 +116,11 @@ pub fn wait_for_auth(
                 let response = serde_json::from_slice::<AuthenticateResponse>(&response).unwrap();
                 auth_token
                     /*.update(|auth| {
-                        auth.access_token = response.token.clone();
+                        auth.access_token = response.access_token.clone();
+                        auth.refresh_token = response.refresh_token.clone();
                     });*/
                     .access_token = response.access_token.clone();
+                auth_token.refresh_token = response.refresh_token.clone();
 
                 game_state.set(GameState::Game);
 

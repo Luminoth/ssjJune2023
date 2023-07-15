@@ -52,6 +52,8 @@ async fn main() -> anyhow::Result<()> {
 
     let app = Router::new()
         .route("/authenticate", post(authenticate))
+        .route("/refresh", post(refresh))
+        .route("/user", get(get_user))
         .route("/characters", get(get_characters))
         .route("/duel", post(create_duel))
         .layer(
@@ -80,6 +82,7 @@ async fn handler_404() -> impl IntoResponse {
     (StatusCode::NOT_FOUND, "resource not found")
 }
 
+// TODO: use auth header instead of POST
 async fn authenticate(
     State(aws_state): State<AwsState>,
     Json(request): Json<AuthenticateRequest>,
@@ -93,11 +96,49 @@ async fn authenticate(
     aws::save_user(aws_state.get_config(), user.clone()).await?;
 
     let secret = aws::get_jwt_secret(aws_state.get_config()).await?;
-    let access_token = auth::generate_token_for_user(user.get_user_id().to_string(), secret)?;
+    let (access_token, refresh_token) =
+        auth::generate_tokens_for_user(user.get_user_id().to_string(), secret)?;
 
     let response = AuthenticateResponse {
         access_token,
-        refresh_token: String::default(),
+        refresh_token,
+    };
+    Ok((StatusCode::OK, Json(response)))
+}
+
+// TODO: use auth header instead of POST
+async fn refresh(
+    State(aws_state): State<AwsState>,
+    Json(request): Json<RefreshRequest>,
+) -> Result<(StatusCode, Json<AuthenticateResponse>), AppError> {
+    let secret = aws::get_jwt_secret(aws_state.get_config()).await?;
+    let user_id = auth::validate_user_refresh_token(request.refresh_token, &secret)?;
+
+    info!("refreshing user token for {} ...", user_id);
+
+    let (access_token, refresh_token) = auth::generate_tokens_for_user(user_id, secret)?;
+
+    let response = AuthenticateResponse {
+        access_token,
+        refresh_token,
+    };
+    Ok((StatusCode::OK, Json(response)))
+}
+
+async fn get_user(
+    TypedHeader(bearer): TypedHeader<Authorization<Bearer>>,
+    State(aws_state): State<AwsState>,
+) -> Result<(StatusCode, Json<GetUserResponse>), AppError> {
+    let secret = aws::get_jwt_secret(aws_state.get_config()).await?;
+    let user_id = auth::validate_user_access_token(bearer.token(), secret)?;
+
+    info!("getting user for {} ...", user_id);
+
+    let user = aws::get_user(aws_state.get_config(), user_id.parse()?)
+        .await?
+        .ok_or_else(|| anyhow::anyhow!("no such user"))?;
+
+    let response = GetUserResponse {
         display_name: user.get_display_name().clone(),
     };
     Ok((StatusCode::OK, Json(response)))
@@ -108,7 +149,7 @@ async fn get_characters(
     State(aws_state): State<AwsState>,
 ) -> Result<(StatusCode, Json<GetCharactersResponse>), AppError> {
     let secret = aws::get_jwt_secret(aws_state.get_config()).await?;
-    let user_id = auth::validate_token(bearer.token(), secret)?;
+    let user_id = auth::validate_user_access_token(bearer.token(), secret)?;
 
     let user = aws::get_user(aws_state.get_config(), user_id.parse()?)
         .await?
@@ -128,7 +169,7 @@ async fn create_duel(
     Json(request): Json<CreateDuelRequest>,
 ) -> Result<(StatusCode, Json<CreateDuelResponse>), AppError> {
     let secret = aws::get_jwt_secret(aws_state.get_config()).await?;
-    let user_id = auth::validate_token(bearer.token(), secret)?;
+    let user_id = auth::validate_user_access_token(bearer.token(), secret)?;
 
     let user = aws::get_user(aws_state.get_config(), user_id.parse()?)
         .await?

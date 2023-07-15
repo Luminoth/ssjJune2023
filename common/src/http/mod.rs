@@ -7,10 +7,18 @@ pub struct AuthenticateRequest {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+pub struct RefreshRequest {
+    pub refresh_token: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 pub struct AuthenticateResponse {
     pub access_token: String,
     pub refresh_token: String,
+}
 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct GetUserResponse {
     pub display_name: String,
 }
 
