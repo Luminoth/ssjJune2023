@@ -3,12 +3,13 @@ use uuid::Uuid;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AuthenticateRequest {
-    pub access_token: String,
+    pub oauth_token: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AuthenticateResponse {
-    pub token: String,
+    pub access_token: String,
+    pub refresh_token: String,
 
     pub display_name: String,
 }

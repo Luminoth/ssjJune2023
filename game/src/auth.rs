@@ -32,13 +32,13 @@ pub fn start_oauth(commands: &mut Commands) {
     webbrowser::open("https://itch.io/user/oauth?client_id=11608a8d9cd812ac0651da4dc2f9f484&scope=profile%3Ame&response_type=token&redirect_uri=http%3A%2F%2F127.0.0.1%3A5000").unwrap();
 }
 
-pub fn authenticate(commands: &mut Commands, access_token: impl Into<String>) {
+pub fn authenticate(commands: &mut Commands, oauth_token: impl Into<String>) {
     let client = reqwest::Client::new();
 
     let request = client
         .post("http://localhost:3000/authenticate")
         .json(&AuthenticateRequest {
-            access_token: access_token.into(),
+            oauth_token: oauth_token.into(),
         })
         .build()
         .unwrap();
@@ -114,7 +114,7 @@ async fn auth_request_handler(
                 ctx.world
                     .get_resource_mut::<AuthorizationResource>()
                     .unwrap()
-                    .access_token = request.access_token.clone();
+                    .oauth_token = request.access_token.clone();
             })
             .await;
 

@@ -9,8 +9,8 @@ use serde::{Deserialize, Serialize};
 pub struct Authorization {
     // oauth access token
     #[serde(skip)]
-    pub access_token: String,
+    pub oauth_token: String,
 
-    pub auth_token: String,
+    pub access_token: String,
     pub refresh_token: String,
 }

@@ -86,17 +86,18 @@ async fn authenticate(
 ) -> Result<(StatusCode, Json<AuthenticateResponse>), AppError> {
     info!("authenticating user ...");
 
-    let mut user: User = itchio::get_user(&request.access_token).await?.into();
+    let mut user: User = itchio::get_user(&request.oauth_token).await?.into();
     info!("authenticated user: {}", user);
-    user.set_api_key(request.access_token);
+    user.set_api_key(request.oauth_token);
 
     aws::save_user(aws_state.get_config(), user.clone()).await?;
 
     let secret = aws::get_jwt_secret(aws_state.get_config()).await?;
-    let token = auth::generate_token_for_user(user.get_user_id().to_string(), secret)?;
+    let access_token = auth::generate_token_for_user(user.get_user_id().to_string(), secret)?;
 
     let response = AuthenticateResponse {
-        token,
+        access_token,
+        refresh_token: String::default(),
         display_name: user.get_display_name().clone(),
     };
     Ok((StatusCode::OK, Json(response)))

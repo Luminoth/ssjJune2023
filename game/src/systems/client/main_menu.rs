@@ -20,7 +20,7 @@ pub fn enter(
     commands.insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)));
     commands.spawn((Camera2dBundle::default(), OnMainMenu));
 
-    if !auth_token.auth_token.trim().is_empty() {
+    if !auth_token.access_token.trim().is_empty() {
         // TODO: this isn't right, we want to refresh our token
         // or otherwise do something to verify the token first
         game_state.set(GameState::Game);
@@ -70,7 +70,7 @@ pub fn wait_for_oauth(
         ui.horizontal(|ui| {
             ui.add_enabled_ui(!auth_token.access_token.trim().is_empty(), |ui| {
                 if ui.button("Ok").clicked() {
-                    auth::authenticate(&mut commands, auth_token.access_token.clone());
+                    auth::authenticate(&mut commands, auth_token.oauth_token.clone());
 
                     main_menu_state.set(MainMenuState::WaitForAuth);
                 }
@@ -83,8 +83,8 @@ pub fn wait_for_oauth(
         });*/
     });
 
-    if !auth_token.access_token.trim().is_empty() {
-        auth::authenticate(&mut commands, auth_token.access_token.clone());
+    if !auth_token.oauth_token.trim().is_empty() {
+        auth::authenticate(&mut commands, auth_token.oauth_token.clone());
 
         main_menu_state.set(MainMenuState::WaitForAuth);
     }
@@ -108,17 +108,15 @@ pub fn wait_for_auth(
 
         match result {
             Ok(response) => {
-                info!("success: {:?}", response);
+                info!("authentication success");
 
                 // TODO: error handling
                 let response = serde_json::from_slice::<AuthenticateResponse>(&response).unwrap();
-                info!("got token {} for {}", response.token, response.display_name);
-
                 auth_token
                     /*.update(|auth| {
-                        auth.auth_token = response.token.clone();
+                        auth.access_token = response.token.clone();
                     });*/
-                    .auth_token = response.token.clone();
+                    .access_token = response.access_token.clone();
 
                 game_state.set(GameState::Game);
 
@@ -131,7 +129,7 @@ pub fn wait_for_auth(
             }
         }
 
-        auth_token.access_token.clear();
+        auth_token.oauth_token.clear();
 
         commands.entity(entity).despawn_recursive();
     }
