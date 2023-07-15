@@ -2,6 +2,7 @@
 
 // https://github.com/bevyengine/bevy/blob/v0.10.0/examples/games/game_menu.rs
 
+mod auth;
 mod components;
 mod cooldown;
 mod plugins;
@@ -78,6 +79,8 @@ fn main() {
             plugins::client::splash::SplashPlugin,
             plugins::client::main_menu::MainMenuPlugin,
         ));
+
+        app.add_systems(Startup, systems::client::startup);
     }
 
     #[cfg(feature = "server")]
