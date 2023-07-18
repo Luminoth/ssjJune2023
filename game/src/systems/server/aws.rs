@@ -4,165 +4,37 @@ use futures_lite::future;
 
 use crate::components::server::aws::*;
 
-pub fn start_load_aws_config_requests(
+pub fn start_aws_requests<R>(
     mut commands: Commands,
-    requests: Query<(Entity, &LoadAwsConfigRequest), Added<LoadAwsConfigRequest>>,
+    requests: Query<(Entity, &R), Added<R>>,
     runtime: Res<TokioTasksRuntime>,
-) {
-    for (entity, _) in requests.iter() {
-        info!("loading AWS config...");
-
-        let task =
-            runtime.spawn_background_task(|_ctx| async move { aws_config::load_from_env().await });
-
-        commands
-            .entity(entity)
-            .insert(LoadAwsConfigTask(task))
-            .remove::<LoadAwsConfigRequest>();
-    }
-}
-
-pub fn poll_load_aws_config_requests(
-    mut commands: Commands,
-    mut requests: Query<(Entity, &mut LoadAwsConfigTask)>,
-) {
-    for (entity, mut task) in requests.iter_mut() {
-        if let Some(config) = future::block_on(future::poll_once(&mut task.0)) {
-            // TODO: error handling
-            let config = config.unwrap();
-
-            debug!("loaded AWS config: {:?}", config);
-
-            commands
-                .entity(entity)
-                .insert(LoadAwsConfigResult(Some(config)))
-                .remove::<LoadAwsConfigTask>();
-        }
-    }
-}
-
-pub fn start_sqs_get_queue_url_requests(
-    mut commands: Commands,
-    requests: Query<(Entity, &SQSGetQueueUrlRequest), Added<SQSGetQueueUrlRequest>>,
-    runtime: Res<TokioTasksRuntime>,
-) {
+) where
+    R: AwsTaskRequest,
+{
     for (entity, request) in requests.iter() {
-        let client = request.0 .0.clone();
-        let queue_name = request.0 .1.clone();
-
-        info!("getting SQS queue {} URL...", queue_name);
-
-        let task = runtime.spawn_background_task(|_ctx| async move {
-            client.get_queue_url().queue_name(queue_name).send().await
-        });
+        let request = request.clone();
+        let task = runtime.spawn_background_task(|_ctx| async move { request.run().await });
 
         commands
             .entity(entity)
-            .insert(SQSGetQueueUrlTask(task))
-            .remove::<SQSGetQueueUrlRequest>();
+            .insert(AwsTask::<<R as AwsTaskRequest>::Output>::new(task))
+            .remove::<R>();
     }
 }
 
-pub fn poll_sqs_get_url_requests(
-    mut commands: Commands,
-    mut requests: Query<(Entity, &mut SQSGetQueueUrlTask)>,
-) {
+pub fn poll_aws_tasks<R>(mut commands: Commands, mut requests: Query<(Entity, &mut AwsTask<R>)>)
+where
+    R: Send + Sync + 'static,
+{
     for (entity, mut task) in requests.iter_mut() {
-        if let Some(result) = future::block_on(future::poll_once(&mut task.0)) {
+        if let Some(result) = future::block_on(future::poll_once(&mut task.get_handle_mut())) {
             // TODO: error handling
             let result = result.unwrap();
 
             commands
                 .entity(entity)
-                .insert(SQSGetQueueUrlResult(Some(result)))
-                .remove::<SQSGetQueueUrlTask>();
-        }
-    }
-}
-
-pub fn start_sqs_receive_message_requests(
-    mut commands: Commands,
-    requests: Query<(Entity, &SQSReceiveMessageRequest), Added<SQSReceiveMessageRequest>>,
-    runtime: Res<TokioTasksRuntime>,
-) {
-    for (entity, request) in requests.iter() {
-        let client = request.0 .0.clone();
-        let queue_url = request.0 .1.clone();
-
-        info!("receiving messages from queue at {}...", queue_url);
-
-        let task = runtime.spawn_background_task(|_ctx| async move {
-            client.receive_message().queue_url(queue_url).send().await
-        });
-
-        commands
-            .entity(entity)
-            .insert(SQSReceiveMessageTask(task))
-            .remove::<SQSReceiveMessageRequest>();
-    }
-}
-
-pub fn poll_sqs_receive_message_requests(
-    mut commands: Commands,
-    mut requests: Query<(Entity, &mut SQSReceiveMessageTask)>,
-) {
-    for (entity, mut task) in requests.iter_mut() {
-        if let Some(result) = future::block_on(future::poll_once(&mut task.0)) {
-            // TODO: error handling
-            let result = result.unwrap();
-
-            commands
-                .entity(entity)
-                .insert(SQSReceiveMessageResult(Some(result)))
-                .remove::<SQSReceiveMessageTask>();
-        }
-    }
-}
-
-pub fn start_sqs_delete_message_requests(
-    mut commands: Commands,
-    requests: Query<(Entity, &SQSDeleteMessageRequest), Added<SQSDeleteMessageRequest>>,
-    runtime: Res<TokioTasksRuntime>,
-) {
-    for (entity, request) in requests.iter() {
-        let client = request.0 .0.clone();
-        let queue_url = request.0 .1.clone();
-        let message_reciept_handle = request.0 .2.clone();
-
-        info!(
-            "deleting message {} from queue at {}...",
-            message_reciept_handle, queue_url
-        );
-
-        let task = runtime.spawn_background_task(|_ctx| async move {
-            client
-                .delete_message()
-                .queue_url(queue_url)
-                .receipt_handle(message_reciept_handle)
-                .send()
-                .await
-        });
-
-        commands
-            .entity(entity)
-            .insert(SQSDeleteMessageTask(task))
-            .remove::<SQSDeleteMessageRequest>();
-    }
-}
-
-pub fn poll_sqs_delete_message_requests(
-    mut commands: Commands,
-    mut requests: Query<(Entity, &mut SQSDeleteMessageTask)>,
-) {
-    for (entity, mut task) in requests.iter_mut() {
-        if let Some(result) = future::block_on(future::poll_once(&mut task.0)) {
-            // TODO: error handling
-            let result = result.unwrap();
-
-            commands
-                .entity(entity)
-                .insert(SQSDeleteMessageResult(Some(result)))
-                .remove::<SQSDeleteMessageTask>();
+                .insert(AwsTaskResult::new(Some(result)))
+                .remove::<AwsTask<R>>();
         }
     }
 }

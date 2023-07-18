@@ -6,6 +6,10 @@ use crate::plugins::server::looking_for_work::*;
 use crate::resources::{server::looking_for_work::*, server::*, Random};
 use crate::states::GameState;
 
+// NOTE: server is broken due to https://github.com/bevyengine/bevy/issues/9130
+// either bevy needs to allow re-entering state triggers (ideal)
+// or the way states are managed here needs to be re-done
+
 pub fn enter(
     mut commands: Commands,
     aws_config: Res<AwsConfig>,
@@ -63,7 +67,7 @@ pub fn wait_for_queue_url(
 ) {
     if let Ok((entity, mut result)) = results.get_single_mut() {
         // TODO: error handling
-        let result = result.0.take().unwrap();
+        let result = result.get_result_mut().take().unwrap();
 
         match result {
             Ok(output) => {
@@ -133,7 +137,7 @@ pub fn wait_for_work(
 ) {
     if let Ok((entity, mut result)) = receive_message_tasks.get_single_mut() {
         // TODO: error handling
-        let result = result.0.take().unwrap();
+        let result = result.get_result_mut().take().unwrap();
 
         match result {
             Ok(output) => {
@@ -198,7 +202,7 @@ pub fn wait_for_claim_work(
 ) {
     if let Ok((entity, mut result)) = results.get_single_mut() {
         // TODO: error handling
-        let result = result.0.take().unwrap();
+        let result = result.get_result_mut().take().unwrap();
 
         match result {
             Ok(_) => {

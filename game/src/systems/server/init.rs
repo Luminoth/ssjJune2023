@@ -19,9 +19,9 @@ pub fn wait_for_aws_config_task(
     mut results: Query<(Entity, &mut LoadAwsConfigResult)>,
     mut game_state: ResMut<NextState<GameState>>,
 ) {
-    if let Ok((entity, mut task)) = results.get_single_mut() {
+    if let Ok((entity, mut result)) = results.get_single_mut() {
         // TODO: error handling
-        let config = task.0.take().unwrap();
+        let config = result.get_result_mut().take().unwrap();
 
         commands.insert_resource(AwsConfig(config));
         commands.entity(entity).despawn_recursive();

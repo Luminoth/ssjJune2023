@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 
+use crate::components::server::aws::*;
 use crate::systems::server::aws::*;
 
 pub struct AwsTaskPlugin;
@@ -10,18 +11,21 @@ impl Plugin for AwsTaskPlugin {
             Update,
             (
                 (
-                    start_load_aws_config_requests,
-                    poll_load_aws_config_requests,
+                    start_aws_requests::<LoadAwsConfigRequest>,
+                    poll_aws_tasks::<<LoadAwsConfigRequest as AwsTaskRequest>::Output>,
                 ),
                 (
-                    (start_sqs_get_queue_url_requests, poll_sqs_get_url_requests),
                     (
-                        start_sqs_receive_message_requests,
-                        poll_sqs_receive_message_requests,
+                        start_aws_requests::<SQSGetQueueUrlRequest>,
+                        poll_aws_tasks::<<SQSGetQueueUrlRequest as AwsTaskRequest>::Output>,
                     ),
                     (
-                        start_sqs_delete_message_requests,
-                        poll_sqs_delete_message_requests,
+                        start_aws_requests::<SQSReceiveMessageRequest>,
+                        poll_aws_tasks::<<SQSReceiveMessageRequest as AwsTaskRequest>::Output>,
+                    ),
+                    (
+                        start_aws_requests::<SQSDeleteMessageRequest>,
+                        poll_aws_tasks::<<SQSDeleteMessageRequest as AwsTaskRequest>::Output>,
                     ),
                 ),
             ),
