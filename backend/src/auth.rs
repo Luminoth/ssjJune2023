@@ -1,30 +1,6 @@
-use chrono::prelude::*;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
-use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Claims {
-    sub: String,
-    exp: usize,
-    iss: String,
-    aud: String,
-}
-
-impl Claims {
-    pub fn new(
-        subject: impl Into<String>,
-        issuer: impl Into<String>,
-        audience: impl Into<String>,
-        ttl: i64,
-    ) -> Self {
-        Self {
-            sub: subject.into(),
-            exp: (Utc::now().timestamp() + ttl) as usize,
-            iss: issuer.into(),
-            aud: audience.into(),
-        }
-    }
-}
+use common::auth::Claims;
 
 fn generate_token(claims: &Claims, secret: impl AsRef<[u8]>) -> anyhow::Result<String> {
     let header = Header::default();

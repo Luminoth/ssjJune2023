@@ -735,7 +735,6 @@ dependencies = [
  "aws-sdk-secretsmanager",
  "aws-sdk-sqs",
  "axum",
- "chrono",
  "common",
  "jsonwebtoken",
  "redis",
@@ -1814,6 +1813,7 @@ name = "common"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "jsonwebtoken",
  "serde",
  "serde_json",
  "uuid",
