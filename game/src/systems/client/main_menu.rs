@@ -4,14 +4,17 @@ use bevy_egui::{egui, EguiContexts};
 
 use common::http::*;
 
-use crate::auth::{self, AuthorizationResource};
+use crate::auth;
 use crate::components::{client::main_menu::*, reqwest::*};
+use crate::events::client::auth::*;
 use crate::plugins::client::main_menu::*;
+use crate::resources::client::auth::*;
 use crate::states::GameState;
 
 pub fn enter(
     mut commands: Commands,
-    auth_token: Res<AuthorizationResource>,
+    mut auth_events: EventWriter<RefreshAuthentication>,
+    auth_state: Res<AuthenticationState>,
     mut main_menu_state: ResMut<NextState<MainMenuState>>,
     mut game_state: ResMut<NextState<GameState>>,
 ) {
@@ -20,13 +23,8 @@ pub fn enter(
     commands.insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)));
     commands.spawn((Camera2dBundle::default(), OnMainMenu));
 
-    if !auth_token.access_token.trim().is_empty() {
-        // TODO: this isn't right, we want to refresh our token
-        // or otherwise do something to verify the token first
-        game_state.set(GameState::Game);
-    } else {
-        main_menu_state.set(MainMenuState::WaitForLogin);
-    }
+    auth_events.send(RefreshAuthentication);
+    main_menu_state.set(MainMenuState::WaitForAuth);
 }
 
 pub fn exit(mut commands: Commands) {

@@ -5,6 +5,7 @@
 mod auth;
 mod components;
 mod cooldown;
+mod events;
 mod plugins;
 mod resources;
 mod states;
@@ -76,11 +77,10 @@ fn main() {
 
         // client plugins
         app.add_plugins((
+            plugins::client::auth::AuthPlugin,
             plugins::client::splash::SplashPlugin,
             plugins::client::main_menu::MainMenuPlugin,
         ));
-
-        app.add_systems(Startup, systems::client::startup);
     }
 
     #[cfg(feature = "server")]
