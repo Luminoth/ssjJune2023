@@ -1,6 +1,9 @@
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
 
+pub const ACCESS_TOKEN_TTL: u64 = 3600;
+pub const REFRESH_TOKEN_TTL: u64 = 604800;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
     pub sub: String,

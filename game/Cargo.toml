@@ -21,9 +21,11 @@ bevy-inspector-egui = { version = "0.19", optional = true }
 #bevy-persistent = { version = "0.2", features = ["ini"], optional = true }
 bevy-tokio-tasks = "0.11"
 bytes = "1.4"
+chrono = "0.4"
 dirs = "5.0"
 futures-lite = "1.13"
 hyper = "0.14"
+parking_lot = "0.12"
 rand = "0.8"
 redis = { version = "0.23", optional = true }
 reqwest = { version = "0.11", features = ["json"] }

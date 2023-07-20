@@ -4,7 +4,4 @@ use bevy::prelude::*;
 pub struct RefreshAuthentication;
 
 #[derive(Event)]
-pub struct AuthenticationSuccess;
-
-#[derive(Event)]
-pub struct AuthenticationFailure;
+pub struct AuthenticationResult(pub bool);

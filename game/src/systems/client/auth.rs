@@ -25,7 +25,7 @@ pub fn startup(mut commands: Commands) {
     );
 }
 
-fn start_oauth(commands: &mut Commands) {
+fn start_oauth(commands: &mut Commands, auth_state: &mut AuthenticationState) {
     commands.spawn(StartHyperListener((
         5000,
         // TODO: this should be cleaned up
@@ -36,6 +36,8 @@ fn start_oauth(commands: &mut Commands) {
     // we should have this redirect to 'urn:ietf:wg:oauth:2.0:oob' instead
     // and show an input prompt for the token
     webbrowser::open("https://itch.io/user/oauth?client_id=11608a8d9cd812ac0651da4dc2f9f484&scope=profile%3Ame&response_type=token&redirect_uri=http%3A%2F%2F127.0.0.1%3A5000").unwrap();
+
+    *auth_state = AuthenticationState::WaitForAuthorization;
 }
 
 #[derive(Debug, Deserialize)]
@@ -107,7 +109,7 @@ async fn auth_request_handler(
                 ctx.world
                     .get_resource_mut::<AuthorizationResource>()
                     .unwrap()
-                    .oauth_token = request.access_token.clone();
+                    .set_oauth_token(request.access_token.clone());
             })
             .await;
 
@@ -123,7 +125,11 @@ async fn auth_request_handler(
     }
 }
 
-fn authenticate(commands: &mut Commands, oauth_token: impl Into<String>) {
+fn authenticate(
+    commands: &mut Commands,
+    auth_state: &mut AuthenticationState,
+    oauth_token: impl Into<String>,
+) {
     let client = reqwest::Client::new();
 
     let request = client
@@ -135,6 +141,28 @@ fn authenticate(commands: &mut Commands, oauth_token: impl Into<String>) {
         .unwrap();
 
     commands.spawn(ReqwestRequest((client, request)));
+
+    *auth_state = AuthenticationState::WaitForAuthentication;
+}
+
+fn refresh(
+    commands: &mut Commands,
+    auth_state: &mut AuthenticationState,
+    refresh_token: impl Into<String>,
+) {
+    let client = reqwest::Client::new();
+
+    let request = client
+        .post("http://localhost:3000/refresh")
+        .json(&RefreshRequest {
+            refresh_token: refresh_token.into(),
+        })
+        .build()
+        .unwrap();
+
+    commands.spawn(ReqwestRequest((client, request)));
+
+    *auth_state = AuthenticationState::WaitForRefresh;
 }
 
 pub fn refresh_auth_listener(
@@ -149,15 +177,50 @@ pub fn refresh_auth_listener(
 
     match *auth_state {
         AuthenticationState::Unauthorized => {
-            start_oauth(&mut commands);
-            *auth_state = AuthenticationState::WaitForAuthorization;
+            // if we have a valid access token, we can skip authorization
+            if !authorization.is_access_token_expired() {
+                *auth_state = AuthenticationState::Authenticated;
+
+                // do we need to refresh?
+                if authorization.should_refresh_access_token() {
+                    refresh(
+                        &mut commands,
+                        &mut auth_state,
+                        authorization.get_refresh_token().clone(),
+                    );
+                }
+                return;
+            }
+
+            // if we have a valid refresh token, we can skip authorization
+            if !authorization.is_refresh_token_expired() {
+                refresh(
+                    &mut commands,
+                    &mut auth_state,
+                    authorization.get_refresh_token().clone(),
+                );
+                return;
+            }
+
+            // no valid tokens, so we need to authorize
+            start_oauth(&mut commands, &mut auth_state);
         }
         AuthenticationState::Unauthenticated => {
-            authenticate(&mut commands, authorization.oauth_token.clone());
-            *auth_state = AuthenticationState::WaitForAuthentication;
+            authenticate(
+                &mut commands,
+                &mut auth_state,
+                authorization.get_oauth_token().clone(),
+            );
         }
         AuthenticationState::Authenticated => {
-            // TODO: if the token is close to expiring, refresh it
+            // do we need to refresh?
+            if authorization.should_refresh_access_token() {
+                refresh(
+                    &mut commands,
+                    &mut auth_state,
+                    authorization.get_refresh_token(),
+                );
+            }
         }
         AuthenticationState::WaitForAuthorization
         | AuthenticationState::WaitForAuthentication

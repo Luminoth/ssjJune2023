@@ -1,6 +1,6 @@
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 
-use common::auth::Claims;
+use common::auth::*;
 
 fn generate_token(claims: &Claims, secret: impl AsRef<[u8]>) -> anyhow::Result<String> {
     let header = Header::default();
@@ -21,14 +21,14 @@ pub fn generate_tokens_for_user(
         subject.clone(),
         "ssjJune2023-issuer",
         "ssjJune2023-user",
-        3600,
+        ACCESS_TOKEN_TTL,
     );
 
     let refresh_claims = Claims::new(
         subject,
         "ssjJune2023-issuer",
         "ssjJune2023-user-refresh",
-        604800,
+        REFRESH_TOKEN_TTL,
     );
 
     Ok((
