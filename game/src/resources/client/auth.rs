@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use bevy::prelude::*;
 use chrono::prelude::*;
 use parking_lot::RwLock;
@@ -20,20 +22,17 @@ pub enum AuthenticationState {
 
 impl AuthenticationState {
     pub fn is_authorized(&self) -> bool {
-        match self {
+        matches!(
+            self,
             Self::Unauthenticated
-            | Self::WaitForAuthentication
-            | Self::Authenticated
-            | Self::WaitForRefresh => true,
-            _ => false,
-        }
+                | Self::WaitForAuthentication
+                | Self::Authenticated
+                | Self::WaitForRefresh
+        )
     }
 
     pub fn is_authenticated(&self) -> bool {
-        match self {
-            Self::Authenticated | Self::WaitForRefresh => true,
-            _ => false,
-        }
+        matches!(self, Self::Authenticated | Self::WaitForRefresh)
     }
 }
 
@@ -81,7 +80,7 @@ impl Authorization {
             drop(expiry);
             self.update_token_expiry();
 
-            return expiry.0 < Utc::now().timestamp() as u64;
+            return self.token_expiry.read().0 < Utc::now().timestamp() as u64;
         }
         expiry.0 < Utc::now().timestamp() as u64
     }
@@ -92,7 +91,8 @@ impl Authorization {
             drop(expiry);
             self.update_token_expiry();
 
-            return expiry.0 <= (Utc::now().timestamp() - ACCESS_TOKEN_TTL as i64) as u64;
+            return self.token_expiry.read().0
+                <= (Utc::now().timestamp() - ACCESS_TOKEN_TTL as i64) as u64;
         }
         expiry.0 > (Utc::now().timestamp() - ACCESS_TOKEN_TTL as i64) as u64
     }
@@ -107,7 +107,7 @@ impl Authorization {
             drop(expiry);
             self.update_token_expiry();
 
-            return expiry.1 < Utc::now().timestamp() as u64;
+            return self.token_expiry.read().1 < Utc::now().timestamp() as u64;
         }
         expiry.1 <= Utc::now().timestamp() as u64
     }

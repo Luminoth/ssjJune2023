@@ -8,6 +8,7 @@ use crate::systems::{cleanup_state, client::main_menu::*};
 pub enum MainMenuState {
     #[default]
     Init,
+    WaitForLogin,
     WaitForAuth,
 }
 
@@ -19,7 +20,10 @@ impl Plugin for MainMenuPlugin {
             .add_systems(OnEnter(GameState::MainMenu), enter)
             .add_systems(
                 Update,
-                (wait_for_auth.run_if(in_state(MainMenuState::WaitForAuth)),),
+                (
+                    wait_for_login.run_if(in_state(MainMenuState::WaitForLogin)),
+                    wait_for_auth.run_if(in_state(MainMenuState::WaitForAuth)),
+                ),
             )
             .add_systems(
                 OnExit(GameState::MainMenu),

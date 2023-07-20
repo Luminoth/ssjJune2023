@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+//use bevy_persistent::prelude::*;
 use bevy_tokio_tasks::TaskContext;
 use futures_lite::FutureExt;
 use hyper::{Body, Method, Request, Response, StatusCode};
@@ -10,22 +11,31 @@ use crate::components::{hyper::*, reqwest::*};
 use crate::events::client::auth::*;
 use crate::resources::client::auth::*;
 
+// TODO:
+/*
+pub fn cleanup(commands: &mut Commands) {
+    commands.spawn(StopHyperListener(5000));
+}
+*/
+
 pub fn startup(mut commands: Commands) {
     let _config_dir = dirs::config_dir()
         .map(|native_config_dir| native_config_dir.join("ssj2023"))
         .unwrap_or(std::path::Path::new("local").join("configuration"));
     commands.insert_resource(
-        /*Persistent::<Authorization>::builder()
+        /*Persistent::<AuthorizationResource>::builder()
         .name("authorization")
         .format(StorageFormat::Ini)
         .path(config_dir.join("authorization.ini"))
-        .default(Authorization::default())
+        .default(AuthorizationResource::default())
         .build(),*/
         AuthorizationResource::default(),
     );
 }
 
 fn start_oauth(commands: &mut Commands, auth_state: &mut AuthenticationState) {
+    info!("authorizing ...");
+
     commands.spawn(StartHyperListener((
         5000,
         // TODO: this should be cleaned up
@@ -52,7 +62,7 @@ async fn auth_request_handler(
 ) -> Result<Response<Body>, hyper::Error> {
     match (req.method(), req.uri().path()) {
         (&Method::GET, "/") => {
-            debug!("got GET to '/': {:?}", req);
+            info!("got GET to '/': {:?}", req);
 
             /*
             itch puts the token in the path fragment even when using loopback
@@ -104,12 +114,16 @@ async fn auth_request_handler(
                 serde_json::from_slice(body.to_vec().as_slice()).unwrap();
 
             ctx.run_on_main_thread(move |ctx| {
-                debug!("got access token: {}", request.access_token);
+                info!("got access token: {}", request.access_token);
 
                 ctx.world
                     .get_resource_mut::<AuthorizationResource>()
                     .unwrap()
                     .set_oauth_token(request.access_token.clone());
+
+                // TODO: we need to update the state
+                // and progress authentication next
+                // and stop the hyper listener
             })
             .await;
 
@@ -130,6 +144,8 @@ fn authenticate(
     auth_state: &mut AuthenticationState,
     oauth_token: impl Into<String>,
 ) {
+    info!("authenticating ...");
+
     let client = reqwest::Client::new();
 
     let request = client
@@ -150,6 +166,8 @@ fn refresh(
     auth_state: &mut AuthenticationState,
     refresh_token: impl Into<String>,
 ) {
+    info!("refreshing authentication ...");
+
     let client = reqwest::Client::new();
 
     let request = client
@@ -165,6 +183,56 @@ fn refresh(
     *auth_state = AuthenticationState::WaitForRefresh;
 }
 
+// TODO: this isn't enough tho, we need two separate handlers
+pub fn auth_result_listener(
+    mut commands: Commands,
+    mut results: Query<(Entity, &mut ReqwestResult)>,
+    mut events: EventWriter<AuthenticationResult>,
+    mut auth_state: ResMut<AuthenticationState>,
+    mut authorization: ResMut<AuthorizationResource>,
+) {
+    if let Ok((entity, mut result)) = results.get_single_mut() {
+        // TODO: error handling
+        let result = result.0.take().unwrap();
+
+        match result {
+            Ok(response) => {
+                // TODO: error handling
+                let response = serde_json::from_slice::<AuthenticateResponse>(&response).unwrap();
+                authorization
+                    /*.update(|auth| {
+                        auth.set_auth_tokens(
+                            response.access_token.clone(),
+                            response.refresh_token.clone(),
+                        );
+                    });*/
+                    .set_auth_tokens(
+                        response.access_token.clone(),
+                        response.refresh_token.clone(),
+                    );
+
+                *auth_state = AuthenticationState::Authenticated;
+
+                events.send(AuthenticationResult(true));
+            }
+            Err(err) => {
+                error!("http error: {:?}", err);
+
+                // TODO: deeply error check this,
+                // we may have to go back to Unauthorized
+
+                *auth_state = AuthenticationState::Unauthenticated;
+
+                events.send(AuthenticationResult(false));
+            }
+        }
+
+        authorization.clear_oauth_token();
+
+        commands.entity(entity).despawn_recursive();
+    }
+}
+
 pub fn refresh_auth_listener(
     mut commands: Commands,
     mut events: EventReader<RefreshAuthentication>,
@@ -174,6 +242,8 @@ pub fn refresh_auth_listener(
     if events.is_empty() {
         return;
     }
+
+    info!("received auth refresh request in state {:?}", *auth_state);
 
     match *auth_state {
         AuthenticationState::Unauthorized => {
