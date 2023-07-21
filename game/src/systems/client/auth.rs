@@ -10,6 +10,7 @@ use common::http::*;
 use crate::components::{hyper::*, reqwest::*};
 use crate::events::client::auth::*;
 use crate::resources::client::auth::*;
+use crate::resources::reqwest::*;
 
 // TODO:
 /*
@@ -141,14 +142,13 @@ async fn auth_request_handler(
 
 fn authenticate(
     commands: &mut Commands,
+    reqwest_client: &ReqwestClient,
     auth_state: &mut AuthenticationState,
     oauth_token: impl Into<String>,
 ) {
     info!("authenticating ...");
 
-    let client = reqwest::Client::new();
-
-    let request = client
+    let request = reqwest_client
         .post("http://localhost:3000/authenticate")
         .json(&AuthenticateRequest {
             oauth_token: oauth_token.into(),
@@ -156,21 +156,20 @@ fn authenticate(
         .build()
         .unwrap();
 
-    commands.spawn(ReqwestRequest((client, request)));
+    commands.spawn(ReqwestRequest(request));
 
     *auth_state = AuthenticationState::WaitForAuthentication;
 }
 
 fn refresh(
     commands: &mut Commands,
+    reqwest_client: &ReqwestClient,
     auth_state: &mut AuthenticationState,
     refresh_token: impl Into<String>,
 ) {
     info!("refreshing authentication ...");
 
-    let client = reqwest::Client::new();
-
-    let request = client
+    let request = reqwest_client
         .post("http://localhost:3000/refresh")
         .json(&RefreshRequest {
             refresh_token: refresh_token.into(),
@@ -178,7 +177,7 @@ fn refresh(
         .build()
         .unwrap();
 
-    commands.spawn(ReqwestRequest((client, request)));
+    commands.spawn(ReqwestRequest(request));
 
     *auth_state = AuthenticationState::WaitForRefresh;
 }
@@ -235,6 +234,7 @@ pub fn auth_result_listener(
 
 pub fn refresh_auth_listener(
     mut commands: Commands,
+    reqwest_client: Res<ReqwestClient>,
     mut events: EventReader<RefreshAuthentication>,
     mut auth_state: ResMut<AuthenticationState>,
     authorization: Res<AuthorizationResource>,
@@ -255,6 +255,7 @@ pub fn refresh_auth_listener(
                 if authorization.should_refresh_access_token() {
                     refresh(
                         &mut commands,
+                        &reqwest_client,
                         &mut auth_state,
                         authorization.get_refresh_token().clone(),
                     );
@@ -266,6 +267,7 @@ pub fn refresh_auth_listener(
             if !authorization.is_refresh_token_expired() {
                 refresh(
                     &mut commands,
+                    &reqwest_client,
                     &mut auth_state,
                     authorization.get_refresh_token().clone(),
                 );
@@ -278,6 +280,7 @@ pub fn refresh_auth_listener(
         AuthenticationState::Unauthenticated => {
             authenticate(
                 &mut commands,
+                &reqwest_client,
                 &mut auth_state,
                 authorization.get_oauth_token().clone(),
             );
@@ -287,6 +290,7 @@ pub fn refresh_auth_listener(
             if authorization.should_refresh_access_token() {
                 refresh(
                     &mut commands,
+                    &reqwest_client,
                     &mut auth_state,
                     authorization.get_refresh_token(),
                 );

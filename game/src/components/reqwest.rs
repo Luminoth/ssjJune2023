@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use tokio::task;
 
 #[derive(Debug, Component)]
-pub struct ReqwestRequest(pub (reqwest::Client, reqwest::Request));
+pub struct ReqwestRequest(pub reqwest::Request);
 
 #[derive(Debug, Component)]
 pub struct ReqwestTask(pub task::JoinHandle<Result<bytes::Bytes, reqwest::Error>>);

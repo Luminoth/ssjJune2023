@@ -3,6 +3,7 @@ use bevy_tokio_tasks::TokioTasksRuntime;
 use futures_lite::future;
 
 use crate::components::reqwest::*;
+use crate::resources::reqwest::*;
 
 // TODO: instead of using error_for_status,
 // we probably want to pass the status back to the handler
@@ -11,12 +12,13 @@ use crate::components::reqwest::*;
 
 pub fn start_http_requests(
     mut commands: Commands,
+    client: Res<ReqwestClient>,
     requests: Query<(Entity, &ReqwestRequest), Added<ReqwestRequest>>,
     runtime: Res<TokioTasksRuntime>,
 ) {
     for (entity, request) in requests.iter() {
-        let client = request.0 .0.clone();
-        let request = request.0 .1.try_clone().unwrap();
+        let client = client.clone();
+        let request = request.0.try_clone().unwrap();
 
         let task = runtime.spawn_background_task(|_ctx| async move {
             client
