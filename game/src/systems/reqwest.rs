@@ -18,15 +18,20 @@ pub fn start_http_requests(
 ) {
     for (entity, request) in requests.iter() {
         let client = client.clone();
-        let request = request.0.try_clone().unwrap();
+        let reqwest_request = request.0 .0.try_clone().unwrap();
+        let response_handler = request.0 .1.clone();
 
-        let task = runtime.spawn_background_task(|_ctx| async move {
-            client
-                .execute(request)
+        let task = runtime.spawn_background_task(|ctx| async move {
+            let response = client
+                .execute(reqwest_request)
                 .await?
                 .error_for_status()?
                 .bytes()
-                .await
+                .await;
+
+            (response_handler)(response, ctx).await;
+
+            Ok(())
         });
 
         commands
@@ -42,10 +47,10 @@ pub fn poll_http_requests(mut commands: Commands, mut requests: Query<(Entity, &
             // TODO: error handling
             let response = response.unwrap();
 
-            commands
-                .entity(entity)
-                .insert(ReqwestResult(Some(response)))
-                .remove::<ReqwestTask>();
+            // TODO: error handling
+            let _result = response.unwrap();
+
+            commands.entity(entity).despawn();
         }
     }
 }

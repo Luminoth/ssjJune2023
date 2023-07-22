@@ -40,7 +40,7 @@ fn start_oauth(commands: &mut Commands, auth_state: &mut AuthenticationState) {
     commands.spawn(StartHyperListener((
         5000,
         // TODO: this should be cleaned up
-        std::sync::Arc::new(move |port, req, ctx| auth_request_handler(port, req, ctx).boxed()),
+        std::sync::Arc::new(move |port, req, ctx| access_token_handler(port, req, ctx).boxed()),
     )));
 
     // TODO: if we were unable to start the listener
@@ -56,7 +56,7 @@ struct AccessTokenRequest {
     pub access_token: String,
 }
 
-async fn auth_request_handler(
+async fn access_token_handler(
     port: u16,
     req: Request<Body>,
     mut ctx: TaskContext,
@@ -156,7 +156,11 @@ fn authenticate(
         .build()
         .unwrap();
 
-    commands.spawn(ReqwestRequest(request));
+    commands.spawn(ReqwestRequest((
+        request,
+        // TODO: this should be cleaned up
+        std::sync::Arc::new(move |resp, ctx| auth_response_handler(resp, ctx).boxed()),
+    )));
 
     *auth_state = AuthenticationState::WaitForAuthentication;
 }
@@ -177,28 +181,25 @@ fn refresh(
         .build()
         .unwrap();
 
-    commands.spawn(ReqwestRequest(request));
+    commands.spawn(ReqwestRequest((
+        request,
+        // TODO: this should be cleaned up
+        std::sync::Arc::new(move |resp, ctx| auth_response_handler(resp, ctx).boxed()),
+    )));
 
     *auth_state = AuthenticationState::WaitForRefresh;
 }
 
-// TODO: this isn't enough tho, we need two separate handlers
-pub fn auth_result_listener(
-    mut commands: Commands,
-    mut results: Query<(Entity, &mut ReqwestResult)>,
-    mut events: EventWriter<AuthenticationResult>,
-    mut auth_state: ResMut<AuthenticationState>,
-    mut authorization: ResMut<AuthorizationResource>,
-) {
-    if let Ok((entity, mut result)) = results.get_single_mut() {
-        // TODO: error handling
-        let result = result.0.take().unwrap();
-
-        match result {
+async fn auth_response_handler(resp: Result<bytes::Bytes, reqwest::Error>, mut ctx: TaskContext) {
+    ctx.run_on_main_thread(move |ctx| {
+        match resp {
             Ok(response) => {
                 // TODO: error handling
                 let response = serde_json::from_slice::<AuthenticateResponse>(&response).unwrap();
-                authorization
+
+                ctx.world
+                    .get_resource_mut::<AuthorizationResource>()
+                    .unwrap()
                     /*.update(|auth| {
                         auth.set_auth_tokens(
                             response.access_token.clone(),
@@ -210,9 +211,10 @@ pub fn auth_result_listener(
                         response.refresh_token.clone(),
                     );
 
-                *auth_state = AuthenticationState::Authenticated;
+                *ctx.world.get_resource_mut::<AuthenticationState>().unwrap() =
+                    AuthenticationState::Authenticated;
 
-                events.send(AuthenticationResult(true));
+                ctx.world.send_event(AuthenticationResult(true));
             }
             Err(err) => {
                 error!("http error: {:?}", err);
@@ -220,16 +222,19 @@ pub fn auth_result_listener(
                 // TODO: deeply error check this,
                 // we may have to go back to Unauthorized
 
-                *auth_state = AuthenticationState::Unauthenticated;
+                *ctx.world.get_resource_mut::<AuthenticationState>().unwrap() =
+                    AuthenticationState::Unauthenticated;
 
-                events.send(AuthenticationResult(false));
+                ctx.world.send_event(AuthenticationResult(false));
             }
         }
 
-        authorization.clear_oauth_token();
-
-        commands.entity(entity).despawn_recursive();
-    }
+        ctx.world
+            .get_resource_mut::<AuthorizationResource>()
+            .unwrap()
+            .clear_oauth_token();
+    })
+    .await;
 }
 
 pub fn refresh_auth_listener(

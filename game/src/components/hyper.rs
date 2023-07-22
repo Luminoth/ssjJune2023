@@ -24,6 +24,3 @@ pub struct HyperTask(
         task::JoinHandle<Result<(), hyper::Error>>,
     ),
 );
-
-#[derive(Debug, Component)]
-pub struct HyperRequest;

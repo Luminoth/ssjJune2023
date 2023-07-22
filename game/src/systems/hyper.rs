@@ -81,12 +81,15 @@ pub fn poll_http_listeners(mut commands: Commands, mut tasks: Query<(Entity, &mu
     for (entity, mut task) in tasks.iter_mut() {
         if let Some(response) = future::block_on(future::poll_once(&mut task.0 .2)) {
             // TODO: error handling
-            let _response = response.unwrap();
+            let response = response.unwrap();
+
+            // TODO: error handling
+            let _result = response.unwrap();
 
             // TODO: debug log
             info!("hyper listener on port {} shut down", task.0 .0);
 
-            commands.entity(entity).remove::<HyperTask>();
+            commands.entity(entity).despawn();
         }
     }
 }
