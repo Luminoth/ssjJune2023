@@ -46,6 +46,7 @@ fn start_oauth(commands: &mut Commands, auth_state: &mut AuthenticationState) {
     // TODO: if we were unable to start the listener
     // we should have this redirect to 'urn:ietf:wg:oauth:2.0:oob' instead
     // and show an input prompt for the token
+    // TODO: error handling
     webbrowser::open("https://itch.io/user/oauth?client_id=11608a8d9cd812ac0651da4dc2f9f484&scope=profile%3Ame&response_type=token&redirect_uri=http%3A%2F%2F127.0.0.1%3A5000").unwrap();
 
     *auth_state = AuthenticationState::WaitForAuthorization;
@@ -122,9 +123,12 @@ async fn access_token_handler(
                     .unwrap()
                     .set_oauth_token(request.access_token.clone());
 
-                // TODO: we need to update the state
-                // and progress authentication next
-                // and stop the hyper listener
+                ctx.world.spawn(StopHyperListener(port));
+
+                *ctx.world.get_resource_mut::<AuthenticationState>().unwrap() =
+                    AuthenticationState::Unauthenticated;
+
+                ctx.world.send_event(RefreshAuthentication);
             })
             .await;
 
@@ -148,6 +152,7 @@ fn authenticate(
 ) {
     info!("authenticating ...");
 
+    // TODO: error handling
     let request = reqwest_client
         .post("http://localhost:3000/authenticate")
         .json(&AuthenticateRequest {
@@ -173,6 +178,7 @@ fn refresh(
 ) {
     info!("refreshing authentication ...");
 
+    // TODO: error handling
     let request = reqwest_client
         .post("http://localhost:3000/refresh")
         .json(&RefreshRequest {

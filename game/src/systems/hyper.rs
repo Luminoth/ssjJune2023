@@ -84,7 +84,7 @@ pub fn poll_http_listeners(mut commands: Commands, mut tasks: Query<(Entity, &mu
             let response = response.unwrap();
 
             // TODO: error handling
-            let _result = response.unwrap();
+            response.unwrap();
 
             // TODO: debug log
             info!("hyper listener on port {} shut down", task.0 .0);

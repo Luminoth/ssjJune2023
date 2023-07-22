@@ -48,7 +48,7 @@ pub fn poll_http_requests(mut commands: Commands, mut requests: Query<(Entity, &
             let response = response.unwrap();
 
             // TODO: error handling
-            let _result = response.unwrap();
+            response.unwrap();
 
             commands.entity(entity).despawn();
         }
