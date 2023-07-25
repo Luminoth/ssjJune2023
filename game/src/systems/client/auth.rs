@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-//use bevy_persistent::prelude::*;
+use bevy_persistent::prelude::*;
 use bevy_tokio_tasks::TaskContext;
 use futures_lite::FutureExt;
 use hyper::{Body, Method, Request, Response, StatusCode};
@@ -20,17 +20,17 @@ pub fn cleanup(commands: &mut Commands) {
 */
 
 pub fn startup(mut commands: Commands) {
-    let _config_dir = dirs::config_dir()
+    let config_dir = dirs::config_dir()
         .map(|native_config_dir| native_config_dir.join("ssj2023"))
         .unwrap_or(std::path::Path::new("local").join("configuration"));
     commands.insert_resource(
-        /*Persistent::<AuthorizationResource>::builder()
-        .name("authorization")
-        .format(StorageFormat::Ini)
-        .path(config_dir.join("authorization.ini"))
-        .default(AuthorizationResource::default())
-        .build(),*/
-        AuthorizationResource::default(),
+        AuthorizationResource::builder()
+            .name("authorization")
+            .format(StorageFormat::Ini)
+            .path(config_dir.join("authorization.ini"))
+            .default(Authorization::default())
+            .build()
+            .unwrap(),
     );
 }
 
@@ -206,16 +206,13 @@ async fn auth_response_handler(resp: Result<bytes::Bytes, reqwest::Error>, mut c
                 ctx.world
                     .get_resource_mut::<AuthorizationResource>()
                     .unwrap()
-                    /*.update(|auth| {
+                    .update(|auth| {
                         auth.set_auth_tokens(
                             response.access_token.clone(),
                             response.refresh_token.clone(),
                         );
-                    });*/
-                    .set_auth_tokens(
-                        response.access_token.clone(),
-                        response.refresh_token.clone(),
-                    );
+                    })
+                    .unwrap();
 
                 *ctx.world.get_resource_mut::<AuthenticationState>().unwrap() =
                     AuthenticationState::Authenticated;

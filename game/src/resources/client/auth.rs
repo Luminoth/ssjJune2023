@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use bevy::prelude::*;
+use bevy_persistent::prelude::*;
 use chrono::prelude::*;
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
@@ -128,4 +129,4 @@ impl Authorization {
     }
 }
 
-pub type AuthorizationResource = Authorization; //Persistent<Authorization>;
+pub type AuthorizationResource = Persistent<Authorization>;
