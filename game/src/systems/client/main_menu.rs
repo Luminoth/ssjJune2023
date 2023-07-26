@@ -23,6 +23,7 @@ pub fn exit() {
 pub fn wait_for_login(
     mut auth_events: EventWriter<RefreshAuthentication>,
     authorization: Res<AuthorizationResource>,
+    auth_error: Res<AuthenticationError>,
     mut main_menu_state: ResMut<NextState<MainMenuState>>,
     mut contexts: EguiContexts,
 ) {
@@ -41,6 +42,10 @@ pub fn wait_for_login(
                 auth_events.send(RefreshAuthentication);
 
                 main_menu_state.set(MainMenuState::WaitForAuth);
+            }
+
+            if let Some(auth_error) = &auth_error.0 {
+                ui.label(egui::RichText::new(auth_error).color(egui::Color32::RED));
             }
         });
     });

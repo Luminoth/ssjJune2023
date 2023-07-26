@@ -228,6 +228,10 @@ async fn auth_response_handler(resp: Result<bytes::Bytes, reqwest::Error>, mut c
                 *ctx.world.get_resource_mut::<AuthenticationState>().unwrap() =
                     AuthenticationState::Unauthenticated;
 
+                ctx.world
+                    .get_resource_mut::<AuthenticationError>()
+                    .unwrap()
+                    .0 = Some("http error".to_owned());
                 ctx.world.send_event(AuthenticationResult(false));
             }
         }

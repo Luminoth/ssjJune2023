@@ -9,6 +9,7 @@ pub struct AuthPlugin;
 impl Plugin for AuthPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(AuthenticationState::Unauthorized)
+            .insert_resource(AuthenticationError::default())
             .add_event::<RefreshAuthentication>()
             .add_event::<AuthenticationResult>()
             .add_systems(Startup, startup)

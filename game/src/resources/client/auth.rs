@@ -37,6 +37,9 @@ impl AuthenticationState {
     }
 }
 
+#[derive(Debug, Default, Resource)]
+pub struct AuthenticationError(pub Option<String>);
+
 #[derive(Debug, Default, Deserialize, Serialize, Resource)]
 pub struct Authorization {
     #[serde(skip)]
