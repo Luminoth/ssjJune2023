@@ -5,9 +5,6 @@ use futures_lite::future;
 use crate::components::reqwest::*;
 use crate::resources::reqwest::*;
 
-// TODO: instead of using error_for_status,
-// we probably want to pass the status back to the handler
-
 // TODO: do we need a way to cancel requests?
 
 pub fn start_http_requests(
@@ -22,16 +19,23 @@ pub fn start_http_requests(
         let response_handler = request.0 .1.clone();
 
         let task = runtime.spawn_background_task(|ctx| async move {
-            let response = client
-                .execute(reqwest_request)
-                .await?
-                .error_for_status()?
-                .bytes()
-                .await;
-
-            (response_handler)(response, ctx).await;
-
-            Ok(())
+            match client.execute(reqwest_request).await {
+                Ok(response) => {
+                    // TODO: instead of using error_for_status,
+                    // we probably want to pass the status back to the handler?
+                    match response.error_for_status() {
+                        Ok(response) => {
+                            (response_handler)(response.bytes().await, ctx).await;
+                        }
+                        Err(e) => {
+                            (response_handler)(Err(e), ctx).await;
+                        }
+                    }
+                }
+                Err(e) => {
+                    (response_handler)(Err(e), ctx).await;
+                }
+            }
         });
 
         commands
@@ -44,9 +48,6 @@ pub fn start_http_requests(
 pub fn poll_http_requests(mut commands: Commands, mut requests: Query<(Entity, &mut ReqwestTask)>) {
     for (entity, mut task) in requests.iter_mut() {
         if let Some(response) = future::block_on(future::poll_once(&mut task.0)) {
-            // TODO: error handling
-            let response = response.unwrap();
-
             // TODO: error handling
             response.unwrap();
 

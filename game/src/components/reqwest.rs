@@ -11,4 +11,4 @@ pub type AsyncResponseHandler = std::sync::Arc<
 pub struct ReqwestRequest(pub (reqwest::Request, AsyncResponseHandler));
 
 #[derive(Debug, Component)]
-pub struct ReqwestTask(pub task::JoinHandle<anyhow::Result<()>>);
+pub struct ReqwestTask(pub task::JoinHandle<()>);

@@ -28,7 +28,9 @@ pub fn wait_for_login(
     mut contexts: EguiContexts,
 ) {
     // don't wait for the login button if we're already authenticated
-    if authorization.has_oauth() || !authorization.is_access_token_expired() {
+    if auth_error.0.is_none()
+        && (authorization.has_oauth() || !authorization.is_access_token_expired())
+    {
         auth_events.send(RefreshAuthentication);
 
         main_menu_state.set(MainMenuState::WaitForAuth);
@@ -37,7 +39,7 @@ pub fn wait_for_login(
     }
 
     egui::Window::new("Authentication").show(contexts.ctx_mut(), |ui| {
-        ui.horizontal(|ui| {
+        ui.vertical(|ui| {
             if ui.button("Login").clicked() {
                 auth_events.send(RefreshAuthentication);
 
@@ -45,7 +47,10 @@ pub fn wait_for_login(
             }
 
             if let Some(auth_error) = &auth_error.0 {
-                ui.label(egui::RichText::new(auth_error).color(egui::Color32::RED));
+                ui.label(
+                    egui::RichText::new(format!("Authentication Error: {}", auth_error))
+                        .color(egui::Color32::RED),
+                );
             }
         });
     });
