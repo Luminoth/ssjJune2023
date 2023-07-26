@@ -4,6 +4,7 @@ use bevy_egui::{egui, EguiContexts};
 use crate::components::client::main_menu::*;
 use crate::events::client::auth::*;
 use crate::plugins::client::main_menu::*;
+use crate::resources::client::auth::*;
 use crate::states::GameState;
 
 pub fn enter(mut commands: Commands, mut main_menu_state: ResMut<NextState<MainMenuState>>) {
@@ -21,10 +22,18 @@ pub fn exit() {
 
 pub fn wait_for_login(
     mut auth_events: EventWriter<RefreshAuthentication>,
+    authorization: Res<AuthorizationResource>,
     mut main_menu_state: ResMut<NextState<MainMenuState>>,
     mut contexts: EguiContexts,
 ) {
-    // TODO: if we have an access token, we skip the need to push a button
+    // don't wait for the login button if we're already authenticated
+    if authorization.has_oauth() || !authorization.is_access_token_expired() {
+        auth_events.send(RefreshAuthentication);
+
+        main_menu_state.set(MainMenuState::WaitForAuth);
+
+        return;
+    }
 
     egui::Window::new("Authentication").show(contexts.ctx_mut(), |ui| {
         ui.horizontal(|ui| {
