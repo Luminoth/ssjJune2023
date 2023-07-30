@@ -10,6 +10,7 @@ pub enum MainMenuState {
     Init,
     WaitForLogin,
     WaitForAuth,
+    WaitForUser,
 }
 
 pub struct MainMenuPlugin;
@@ -23,6 +24,7 @@ impl Plugin for MainMenuPlugin {
                 (
                     wait_for_login.run_if(in_state(MainMenuState::WaitForLogin)),
                     wait_for_auth.run_if(in_state(MainMenuState::WaitForAuth)),
+                    wait_for_user.run_if(in_state(MainMenuState::WaitForUser)),
                 ),
             )
             .add_systems(

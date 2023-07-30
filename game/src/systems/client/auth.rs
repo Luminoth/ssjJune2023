@@ -9,8 +9,7 @@ use common::http::*;
 
 use crate::components::{hyper::*, reqwest::*};
 use crate::events::client::auth::*;
-use crate::resources::client::auth::*;
-use crate::resources::reqwest::*;
+use crate::resources::{client::auth::*, reqwest::*};
 
 pub fn startup(mut commands: Commands) {
     let config_dir = dirs::config_dir()
