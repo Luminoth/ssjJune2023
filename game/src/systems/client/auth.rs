@@ -12,13 +12,6 @@ use crate::events::client::auth::*;
 use crate::resources::client::auth::*;
 use crate::resources::reqwest::*;
 
-// TODO:
-/*
-pub fn cleanup(commands: &mut Commands) {
-    commands.spawn(StopHyperListener(5000));
-}
-*/
-
 pub fn startup(mut commands: Commands) {
     let config_dir = dirs::config_dir()
         .map(|native_config_dir| native_config_dir.join("ssj2023"))
