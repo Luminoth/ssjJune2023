@@ -12,10 +12,17 @@ mod systems;
 
 use bevy::prelude::*;
 
-use resources::Random;
+use resources::{client::*, Random};
 use states::*;
 
 const LOG_LEVEL: bevy::log::Level = bevy::log::Level::INFO;
+
+#[cfg(feature = "client")]
+fn setup(mut commands: Commands) {
+    info!("setting up client state");
+
+    commands.insert_resource(User::default());
+}
 
 fn main() {
     #[cfg(all(feature = "client", feature = "server"))]
@@ -80,6 +87,8 @@ fn main() {
             plugins::client::splash::SplashPlugin,
             plugins::client::main_menu::MainMenuPlugin,
         ));
+
+        app.add_systems(Startup, setup);
     }
 
     #[cfg(feature = "server")]

@@ -96,9 +96,9 @@ impl Authorization {
             self.update_token_expiry();
 
             return self.token_expiry.read().0
-                <= (Utc::now().timestamp() - ACCESS_TOKEN_TTL as i64) as u64;
+                <= (Utc::now().timestamp() + (ACCESS_TOKEN_TTL as f32 * 0.1) as i64) as u64;
         }
-        expiry.0 > (Utc::now().timestamp() - ACCESS_TOKEN_TTL as i64) as u64
+        expiry.0 <= (Utc::now().timestamp() + (ACCESS_TOKEN_TTL as f32 * 0.1) as i64) as u64
     }
 
     pub fn get_access_token(&self) -> &String {

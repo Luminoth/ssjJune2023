@@ -19,6 +19,7 @@ pub struct AuthenticateResponse {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct GetUserResponse {
+    pub user_id: String,
     pub display_name: String,
 }
 

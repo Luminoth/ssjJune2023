@@ -139,6 +139,7 @@ async fn get_user(
         .ok_or_else(|| anyhow::anyhow!("no such user"))?;
 
     let response = GetUserResponse {
+        user_id: user.get_user_id().clone(),
         display_name: user.get_display_name().clone(),
     };
     Ok((StatusCode::OK, Json(response)))

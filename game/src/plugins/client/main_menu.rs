@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
 use crate::components::client::main_menu::*;
+use crate::events::client::*;
 use crate::states::GameState;
 use crate::systems::{cleanup_state, client::main_menu::*};
 
@@ -18,6 +19,7 @@ pub struct MainMenuPlugin;
 impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_state::<MainMenuState>()
+            .add_event::<UserUpdated>()
             .add_systems(OnEnter(GameState::MainMenu), enter)
             .add_systems(
                 Update,

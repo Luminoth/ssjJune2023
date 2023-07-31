@@ -3,10 +3,12 @@ use bevy_egui::{egui, EguiContexts};
 use bevy_tokio_tasks::TaskContext;
 use futures_lite::FutureExt;
 
+use common::http::*;
+
 use crate::components::{client::main_menu::*, reqwest::*};
-use crate::events::client::auth::*;
+use crate::events::client::{auth::*, *};
 use crate::plugins::client::main_menu::*;
-use crate::resources::{client::auth::*, reqwest::*};
+use crate::resources::{client::auth::*, client::*, reqwest::*};
 use crate::states::GameState;
 
 pub fn enter(mut commands: Commands, mut main_menu_state: ResMut<NextState<MainMenuState>>) {
@@ -33,6 +35,8 @@ pub fn wait_for_login(
     if auth_error.0.is_none()
         && (authorization.has_oauth() || !authorization.is_access_token_expired())
     {
+        info!("authorized, authenticating ...");
+
         auth_events.send(RefreshAuthentication);
 
         main_menu_state.set(MainMenuState::WaitForAuth);
@@ -98,30 +102,58 @@ pub fn wait_for_auth(
     events.clear();
 }
 
-async fn user_response_handler(_resp: Result<bytes::Bytes, reqwest::Error>, mut _ctx: TaskContext) {
-    info!("got user response");
+async fn user_response_handler(resp: Result<bytes::Bytes, reqwest::Error>, mut ctx: TaskContext) {
+    ctx.run_on_main_thread(move |ctx| {
+        match resp {
+            Ok(response) => {
+                // TODO: error handling
+                let response = serde_json::from_slice::<GetUserResponse>(&response).unwrap();
+
+                ctx.world
+                    .insert_resource(User::new(response.user_id, response.display_name));
+
+                ctx.world.send_event(UserUpdated);
+            }
+            Err(err) => {
+                error!("http error: {:?}", err);
+
+                // TODO: deeply error check this,
+                // we may have to go back to Unauthorized
+
+                *ctx.world.get_resource_mut::<AuthenticationState>().unwrap() =
+                    AuthenticationState::Unauthenticated;
+
+                ctx.world
+                    .get_resource_mut::<AuthenticationError>()
+                    .unwrap()
+                    .0 = Some("http error".to_owned());
+
+                // TODO: this isn't right
+                ctx.world.send_event(AuthenticationResult(false));
+            }
+        }
+    })
+    .await
 }
 
-pub fn wait_for_user(mut contexts: EguiContexts, mut _game_state: ResMut<NextState<GameState>>) {
+pub fn wait_for_user(
+    mut events: EventReader<UserUpdated>,
+    user: Res<User>,
+    mut main_menu_state: ResMut<NextState<MainMenuState>>,
+    mut game_state: ResMut<NextState<GameState>>,
+    mut contexts: EguiContexts,
+) {
     egui::Window::new("Authentication").show(contexts.ctx_mut(), |ui| {
         ui.label("Retrieving user ...");
     });
 
-    /*if let Some(event) = events.iter().next() {
-        if event.0 {
-            info!("authentication success");
+    if events.iter().next().is_some() {
+        info!("retrieved user {:?}", user);
 
-            game_state.set(GameState::Game);
+        game_state.set(GameState::Game);
 
-            // TODO: after auth success we need to get our user
-
-            main_menu_state.set(MainMenuState::Init);
-        } else {
-            error!("authentication failure");
-
-            main_menu_state.set(MainMenuState::WaitForLogin);
-        }
+        main_menu_state.set(MainMenuState::Init);
     }
 
-        events.clear();*/
+    events.clear();
 }

@@ -41,7 +41,7 @@ pub async fn get_user(aws_config: &SdkConfig, user_id: u64) -> anyhow::Result<Op
         .get_item()
         .table_name("ssj2023")
         .key("type".to_owned(), AttributeValue::S("user".to_owned()))
-        .key("id".to_owned(), AttributeValue::N(user_id.to_string()))
+        .key("id".to_owned(), AttributeValue::S(user_id.to_string()))
         .send()
         .await?;
 

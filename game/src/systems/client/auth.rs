@@ -233,17 +233,18 @@ async fn auth_response_handler(resp: Result<bytes::Bytes, reqwest::Error>, mut c
             .unwrap()
             .clear_oauth_token();
     })
-    .await;
+    .await
 }
 
 pub fn refresh_auth_listener(
     mut commands: Commands,
     reqwest_client: Res<ReqwestClient>,
-    mut events: EventReader<RefreshAuthentication>,
+    mut refresh_events: EventReader<RefreshAuthentication>,
+    mut auth_result_events: EventWriter<AuthenticationResult>,
     mut auth_state: ResMut<AuthenticationState>,
     authorization: Res<AuthorizationResource>,
 ) {
-    if events.is_empty() {
+    if refresh_events.is_empty() {
         return;
     }
 
@@ -263,7 +264,10 @@ pub fn refresh_auth_listener(
                         &mut auth_state,
                         authorization.get_refresh_token().clone(),
                     );
+                    return;
                 }
+
+                auth_result_events.send(AuthenticationResult(true));
                 return;
             }
 
@@ -307,5 +311,5 @@ pub fn refresh_auth_listener(
         }
     }
 
-    events.clear();
+    refresh_events.clear();
 }
