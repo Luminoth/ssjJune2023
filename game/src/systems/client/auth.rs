@@ -29,11 +29,9 @@ pub fn startup(mut commands: Commands) {
 fn start_oauth(commands: &mut Commands, auth_state: &mut AuthenticationState) {
     info!("authorizing ...");
 
-    commands.spawn(StartHyperListener((
-        5000,
-        // TODO: this should be cleaned up
-        std::sync::Arc::new(move |port, req, ctx| access_token_handler(port, req, ctx).boxed()),
-    )));
+    commands.spawn(StartHyperListener::new(5000, move |port, req, ctx| {
+        access_token_handler(port, req, ctx).boxed()
+    }));
 
     // TODO: if we were unable to start the listener
     // we should have this redirect to 'urn:ietf:wg:oauth:2.0:oob' instead
@@ -153,11 +151,9 @@ fn authenticate(
         .build()
         .unwrap();
 
-    commands.spawn(ReqwestRequest((
-        request,
-        // TODO: this should be cleaned up
-        std::sync::Arc::new(move |resp, ctx| auth_response_handler(resp, ctx).boxed()),
-    )));
+    commands.spawn(ReqwestRequest::new(request, move |resp, ctx| {
+        auth_response_handler(resp, ctx).boxed()
+    }));
 
     *auth_state = AuthenticationState::WaitForAuthentication;
 }
@@ -179,11 +175,9 @@ fn refresh(
         .build()
         .unwrap();
 
-    commands.spawn(ReqwestRequest((
-        request,
-        // TODO: this should be cleaned up
-        std::sync::Arc::new(move |resp, ctx| auth_response_handler(resp, ctx).boxed()),
-    )));
+    commands.spawn(ReqwestRequest::new(request, move |resp, ctx| {
+        auth_response_handler(resp, ctx).boxed()
+    }));
 
     *auth_state = AuthenticationState::WaitForRefresh;
 }

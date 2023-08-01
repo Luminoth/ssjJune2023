@@ -15,8 +15,8 @@ pub fn start_http_requests(
 ) {
     for (entity, request) in requests.iter() {
         let client = client.clone();
-        let reqwest_request = request.0 .0.try_clone().unwrap();
-        let response_handler = request.0 .1.clone();
+        let reqwest_request = request.request.try_clone().unwrap();
+        let response_handler = request.request_handler.clone();
 
         let task = runtime.spawn_background_task(|ctx| async move {
             match client.execute(reqwest_request).await {

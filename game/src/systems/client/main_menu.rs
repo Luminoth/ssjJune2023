@@ -78,6 +78,8 @@ pub fn wait_for_auth(
         if event.0 {
             debug!("authentication success");
 
+            // TODO: move this to a User plugin, similar to the Auth plugin
+
             // TODO: error handling
             let request = reqwest_client
                 .get("http://localhost:3000/user")
@@ -85,11 +87,9 @@ pub fn wait_for_auth(
                 .build()
                 .unwrap();
 
-            commands.spawn(ReqwestRequest((
-                request,
-                // TODO: this should be cleaned up
-                std::sync::Arc::new(move |resp, ctx| user_response_handler(resp, ctx).boxed()),
-            )));
+            commands.spawn(ReqwestRequest::new(request, move |resp, ctx| {
+                user_response_handler(resp, ctx).boxed()
+            }));
 
             main_menu_state.set(MainMenuState::WaitForUser);
         } else {

@@ -20,8 +20,8 @@ pub fn start_http_listeners(
     runtime: Res<TokioTasksRuntime>,
 ) {
     for (entity, request) in requests.iter() {
-        let port = request.0 .0;
-        let request_handler = request.0 .1.clone();
+        let port = request.port;
+        let request_handler = request.request_handler.clone();
 
         let (tx, rx) = oneshot::channel();
 
@@ -86,8 +86,7 @@ pub fn poll_http_listeners(mut commands: Commands, mut tasks: Query<(Entity, &mu
             // TODO: error handling
             response.unwrap();
 
-            // TODO: debug log
-            info!("hyper listener on port {} shut down", task.0 .0);
+            debug!("hyper listener on port {} shut down", task.0 .0);
 
             commands.entity(entity).despawn();
         }
