@@ -1,21 +1,20 @@
+use std::sync::Arc;
+
 use aws_config::SdkConfig;
 
 #[derive(Debug, Clone)]
-pub struct AwsState {
-    config: SdkConfig,
-    queue_url: String,
+pub struct AppState {
+    aws_config: Arc<SdkConfig>,
 }
 
-impl AwsState {
-    pub fn new(config: SdkConfig, queue_url: String) -> Self {
-        Self { config, queue_url }
+impl AppState {
+    pub fn new(aws_config: SdkConfig) -> Self {
+        Self {
+            aws_config: Arc::new(aws_config),
+        }
     }
 
-    pub fn get_config(&self) -> &SdkConfig {
-        &self.config
-    }
-
-    pub fn get_queue_url(&self) -> &String {
-        &self.queue_url
+    pub fn get_aws_config(&self) -> &SdkConfig {
+        &self.aws_config
     }
 }
