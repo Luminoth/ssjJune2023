@@ -10,6 +10,7 @@ mod user;
 use std::net::SocketAddr;
 
 use axum::{
+    debug_handler,
     extract::State,
     headers::authorization::{Authorization, Bearer},
     http::{HeaderValue, Method, StatusCode},
@@ -74,12 +75,14 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[debug_handler]
 async fn handler_404() -> impl IntoResponse {
     debug!("invalid resource");
     (StatusCode::NOT_FOUND, "resource not found")
 }
 
 // TODO: use auth header instead of POST
+#[debug_handler]
 async fn authenticate(
     State(app_state): State<AppState>,
     Json(request): Json<AuthenticateRequest>,
@@ -105,6 +108,7 @@ async fn authenticate(
 }
 
 // TODO: use auth header instead of POST
+#[debug_handler]
 async fn refresh(
     State(app_state): State<AppState>,
     Json(request): Json<RefreshRequest>,
@@ -124,6 +128,7 @@ async fn refresh(
     Ok((StatusCode::OK, Json(response)))
 }
 
+#[debug_handler]
 async fn get_user(
     TypedHeader(bearer): TypedHeader<Authorization<Bearer>>,
     State(app_state): State<AppState>,
@@ -145,6 +150,7 @@ async fn get_user(
     Ok((StatusCode::OK, Json(response)))
 }
 
+#[debug_handler]
 async fn get_characters(
     TypedHeader(bearer): TypedHeader<Authorization<Bearer>>,
     State(app_state): State<AppState>,
@@ -165,6 +171,7 @@ async fn get_characters(
     Ok((StatusCode::OK, Json(response)))
 }
 
+#[debug_handler]
 async fn create_duel(
     TypedHeader(bearer): TypedHeader<Authorization<Bearer>>,
     State(app_state): State<AppState>,

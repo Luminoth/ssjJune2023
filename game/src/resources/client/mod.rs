@@ -6,7 +6,7 @@ pub mod splash;
 
 use bevy::prelude::*;
 
-#[derive(Debug, Default, Resource)]
+#[derive(Debug, Default, Reflect, Resource)]
 pub struct User {
     user_id: String,
     display_name: String,

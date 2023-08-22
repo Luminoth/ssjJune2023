@@ -67,16 +67,16 @@ fn main() {
         // inspectors
         app.add_plugins((
             bevy_inspector_egui::quick::WorldInspectorPlugin::default().run_if(
-                bevy::input::common_conditions::input_toggle_active(true, KeyCode::Grave),
+                bevy::input::common_conditions::input_toggle_active(false, KeyCode::Grave),
             ),
             bevy_inspector_egui::quick::StateInspectorPlugin::<GameState>::default().run_if(
-                bevy::input::common_conditions::input_toggle_active(true, KeyCode::Grave),
+                bevy::input::common_conditions::input_toggle_active(false, KeyCode::Grave),
             ),
             bevy_inspector_egui::quick::StateInspectorPlugin::<
                 plugins::client::main_menu::MainMenuState,
             >::default()
             .run_if(bevy::input::common_conditions::input_toggle_active(
-                true,
+                false,
                 KeyCode::Grave,
             )),
         ));

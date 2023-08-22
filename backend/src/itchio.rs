@@ -33,18 +33,17 @@ pub struct MeResponse {
 }
 
 pub async fn get_user(access_token: impl AsRef<str>) -> anyhow::Result<User> {
-    debug!(
-        "requesting itchio user with token '{}'",
-        access_token.as_ref()
-    );
+    let access_token = access_token.as_ref().trim();
+    if access_token.is_empty() {
+        anyhow::bail!("invalid access token");
+    }
 
-    let response = reqwest::get(format!(
-        "https://itch.io/api/1/{}/me",
-        access_token.as_ref()
-    ))
-    .await?
-    .json::<MeResponse>()
-    .await?;
+    debug!("requesting itchio user with token '{}'", access_token);
+
+    let response = reqwest::get(format!("https://itch.io/api/1/{}/me", access_token))
+        .await?
+        .json::<MeResponse>()
+        .await?;
 
     Ok(response.user)
 }

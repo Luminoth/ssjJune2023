@@ -8,9 +8,10 @@ use serde::{Deserialize, Serialize};
 
 use common::auth::*;
 
-#[derive(Debug, Resource)]
+#[derive(Debug, Default, Reflect, Resource)]
 pub enum AuthenticationState {
     // Oauth steps
+    #[default]
     Unauthorized,
     WaitForAuthorization,
 
@@ -37,10 +38,10 @@ impl AuthenticationState {
     }
 }
 
-#[derive(Debug, Default, Resource)]
+#[derive(Debug, Default, Reflect, Resource)]
 pub struct AuthenticationError(pub Option<String>);
 
-#[derive(Debug, Default, Deserialize, Serialize, Resource)]
+#[derive(Debug, Default, Deserialize, Serialize, Reflect, Resource)]
 pub struct Authorization {
     #[serde(skip)]
     oauth_token: String,
@@ -52,6 +53,7 @@ pub struct Authorization {
     // we can just calculate this on deserialize
     // and avoid the need to have a jank cell setup
     #[serde(skip)]
+    #[reflect(ignore)]
     token_expiry: RwLock<(u64, u64)>,
 }
 
