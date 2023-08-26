@@ -6,6 +6,7 @@ pub enum GameState {
     #[default]
     Splash,
     MainMenu,
+    CharacterSelect,
     Game,
 }
 

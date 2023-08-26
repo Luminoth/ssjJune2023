@@ -164,7 +164,7 @@ fn refresh(
     auth_state: &mut AuthenticationState,
     refresh_token: impl Into<String>,
 ) {
-    info!("refreshing authentication ...");
+    info!("refreshing authentication in state {:?}...", *auth_state);
 
     // TODO: error handling
     let request = reqwest_client
@@ -204,6 +204,11 @@ async fn auth_response_handler(resp: Result<bytes::Bytes, reqwest::Error>, mut c
                     AuthenticationState::Authenticated;
 
                 ctx.world.send_event(AuthenticationResult(true));
+
+                ctx.world
+                    .get_resource_mut::<AuthorizationResource>()
+                    .unwrap()
+                    .clear_oauth_token();
             }
             Err(err) => {
                 error!("http error: {:?}", err);
@@ -211,8 +216,16 @@ async fn auth_response_handler(resp: Result<bytes::Bytes, reqwest::Error>, mut c
                 // TODO: deeply error check this,
                 // we may have to go back to Unauthorized
 
-                *ctx.world.get_resource_mut::<AuthenticationState>().unwrap() =
-                    AuthenticationState::Unauthenticated;
+                *ctx.world.get_resource_mut::<AuthenticationState>().unwrap() = if ctx
+                    .world
+                    .get_resource::<AuthorizationResource>()
+                    .unwrap()
+                    .has_oauth()
+                {
+                    AuthenticationState::Unauthenticated
+                } else {
+                    AuthenticationState::Unauthorized
+                };
 
                 ctx.world
                     .get_resource_mut::<AuthenticationError>()
@@ -221,11 +234,6 @@ async fn auth_response_handler(resp: Result<bytes::Bytes, reqwest::Error>, mut c
                 ctx.world.send_event(AuthenticationResult(false));
             }
         }
-
-        ctx.world
-            .get_resource_mut::<AuthorizationResource>()
-            .unwrap()
-            .clear_oauth_token();
     })
     .await
 }

@@ -86,6 +86,7 @@ fn main() {
             plugins::client::auth::AuthPlugin,
             plugins::client::splash::SplashPlugin,
             plugins::client::main_menu::MainMenuPlugin,
+            plugins::client::character_select::CharacterSelectPlugin,
         ));
 
         app.add_systems(Startup, setup);

@@ -150,7 +150,7 @@ pub fn wait_for_user(
     if events.iter().next().is_some() {
         info!("retrieved user {:?}", user);
 
-        game_state.set(GameState::Game);
+        game_state.set(GameState::CharacterSelect);
 
         main_menu_state.set(MainMenuState::Init);
     }
