@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_egui::{egui, EguiContexts};
 
 use crate::components::client::splash::*;
 use crate::resources::client::splash::*;
@@ -50,8 +51,15 @@ pub fn countdown(
     mut game_state: ResMut<NextState<GameState>>,
     time: Res<Time>,
     mut timer: ResMut<SplashTimer>,
+    mut contexts: EguiContexts,
 ) {
     if timer.tick(time.delta()).finished() {
         game_state.set(GameState::MainMenu);
     }
+
+    // TODO: this is just for debugging
+    // while there is no actual splash
+    egui::Window::new("Splash").show(contexts.ctx_mut(), |ui| {
+        ui.label("Waiting for splash ...");
+    });
 }

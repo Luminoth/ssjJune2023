@@ -23,7 +23,7 @@ pub struct GetUserResponse {
     pub display_name: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct GetCharactersResponse {}
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -31,5 +31,5 @@ pub struct CreateDuelRequest {
     pub character_id: Uuid,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct CreateDuelResponse {}

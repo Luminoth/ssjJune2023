@@ -118,10 +118,9 @@ async fn user_response_handler(resp: Result<bytes::Bytes, reqwest::Error>, mut c
                 error!("http error: {:?}", err);
 
                 // TODO: deeply error check this,
-                // we may have to go back to Unauthorized
 
                 *ctx.world.get_resource_mut::<AuthenticationState>().unwrap() =
-                    AuthenticationState::Unauthenticated;
+                    AuthenticationState::Unauthorized;
 
                 ctx.world
                     .get_resource_mut::<AuthenticationError>()
@@ -148,7 +147,7 @@ pub fn wait_for_user(
     });
 
     if events.iter().next().is_some() {
-        info!("retrieved user {:?}", user);
+        info!("retrieved user: {:?}", user);
 
         game_state.set(GameState::CharacterSelect);
 
