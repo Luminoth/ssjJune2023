@@ -19,6 +19,7 @@ pub struct AuthenticateResponse {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct GetClientConfigResponse {
+    pub max_characters: i32,
     pub max_character_name_len: i32,
 }
 

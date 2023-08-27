@@ -147,6 +147,7 @@ async fn get_client_config(
     auth::validate_user_access_token(bearer.token(), secret)?;
 
     let response = GetClientConfigResponse {
+        max_characters: app_state.get_client_config().max_characters,
         max_character_name_len: app_state.get_client_config().max_character_name_len,
     };
     Ok((StatusCode::OK, Json(response)))
