@@ -3,6 +3,7 @@ use aws_sdk_dynamodb::types::AttributeValue;
 use serde::{Deserialize, Serialize};
 use tracing::info;
 
+use crate::config::ClientConfig;
 use crate::user::User;
 
 pub async fn get_jwt_secret(aws_config: &SdkConfig) -> anyhow::Result<String> {
@@ -66,6 +67,43 @@ pub async fn save_user(aws_config: &SdkConfig, user: User) -> anyhow::Result<()>
         .await?;
 
     Ok(())
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct DbClientConfig {
+    #[serde(rename = "type")]
+    r#type: String,
+
+    #[serde(flatten)]
+    client_config: ClientConfig,
+}
+
+impl From<ClientConfig> for DbClientConfig {
+    fn from(client_config: ClientConfig) -> Self {
+        Self {
+            r#type: "config".to_owned(),
+            client_config,
+        }
+    }
+}
+
+pub async fn get_client_config(aws_config: &SdkConfig) -> anyhow::Result<Option<ClientConfig>> {
+    let client = aws_sdk_dynamodb::Client::new(aws_config);
+    let output = client
+        .get_item()
+        .table_name("ssj2023")
+        .key("type".to_owned(), AttributeValue::S("config".to_owned()))
+        .key("id".to_owned(), AttributeValue::S("client".to_owned()))
+        .send()
+        .await?;
+
+    Ok(match output.item {
+        Some(item) => {
+            let client_config: DbClientConfig = serde_dynamo::from_item(item)?;
+            Some(client_config.client_config)
+        }
+        None => None,
+    })
 }
 
 pub async fn get_queue_url(aws_config: &SdkConfig) -> anyhow::Result<String> {

@@ -2,6 +2,7 @@
 
 mod auth;
 mod aws;
+mod config;
 mod error;
 mod itchio;
 mod state;
@@ -46,11 +47,19 @@ async fn main() -> anyhow::Result<()> {
 
     let aws_config = aws_config::load_from_env().await;
 
-    let app_state = AppState::new(aws_config);
+    // TODO: this should be reloadable
+    info!("loading config ...");
+    let client_config = aws::get_client_config(&aws_config)
+        .await?
+        .ok_or_else(|| anyhow::anyhow!("missing client config"))?;
+    info!("got client config: {:?}", client_config);
+
+    let app_state = AppState::new(aws_config, client_config);
 
     let app = Router::new()
         .route("/authenticate", post(authenticate))
         .route("/refresh", post(refresh))
+        .route("/config/client", get(get_client_config))
         .route("/user", get(get_user))
         .route("/characters", get(get_characters))
         .route("/duel", post(create_duel))
@@ -124,6 +133,21 @@ async fn refresh(
     let response = AuthenticateResponse {
         access_token,
         refresh_token,
+    };
+    Ok((StatusCode::OK, Json(response)))
+}
+
+#[debug_handler]
+async fn get_client_config(
+    TypedHeader(bearer): TypedHeader<Authorization<Bearer>>,
+    State(app_state): State<AppState>,
+) -> Result<(StatusCode, Json<GetClientConfigResponse>), AppError> {
+    let aws_config = app_state.get_aws_config();
+    let secret = aws::get_jwt_secret(aws_config).await?;
+    auth::validate_user_access_token(bearer.token(), secret)?;
+
+    let response = GetClientConfigResponse {
+        max_character_name_len: app_state.get_client_config().max_character_name_len,
     };
     Ok((StatusCode::OK, Json(response)))
 }
