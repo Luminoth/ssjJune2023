@@ -1,7 +1,11 @@
 use std::fmt;
 
+use aws_config::SdkConfig;
 use serde::{Deserialize, Serialize};
+use tracing::info;
 
+use crate::auth;
+use crate::aws;
 use crate::itchio;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -48,4 +52,31 @@ impl User {
     pub fn set_api_key(&mut self, api_key: impl Into<String>) {
         self.api_key = api_key.into()
     }
+}
+
+pub async fn validate_user(
+    aws_config: &SdkConfig,
+    bearer_token: impl AsRef<str>,
+) -> anyhow::Result<String> {
+    let secret = aws::get_jwt_secret(aws_config).await?;
+    let user_id = auth::validate_user_access_token(bearer_token, secret)?;
+
+    info!("validating user {} ...", user_id);
+
+    // TODO:
+
+    Ok(user_id)
+}
+
+pub async fn get_user(
+    aws_config: &SdkConfig,
+    bearer_token: impl AsRef<str>,
+) -> anyhow::Result<User> {
+    let user_id = validate_user(aws_config, bearer_token).await?;
+
+    info!("getting user for {} ...", user_id);
+
+    aws::get_user(aws_config, user_id.parse()?)
+        .await?
+        .ok_or_else(|| anyhow::anyhow!("no such user"))
 }

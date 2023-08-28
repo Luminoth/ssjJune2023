@@ -5,6 +5,7 @@ mod aws;
 mod config;
 mod error;
 mod itchio;
+mod notifs;
 mod state;
 mod user;
 
@@ -12,7 +13,7 @@ use std::net::SocketAddr;
 
 use axum::{
     debug_handler,
-    extract::State,
+    extract::{ws::WebSocketUpgrade, State},
     headers::authorization::{Authorization, Bearer},
     http::{HeaderValue, Method, StatusCode},
     response::IntoResponse,
@@ -59,6 +60,7 @@ async fn main() -> anyhow::Result<()> {
     let app = Router::new()
         .route("/authenticate", post(authenticate))
         .route("/refresh", post(refresh))
+        .route("/notifs", get(notifs))
         .route("/config/client", get(get_client_config))
         .route("/user", get(get_user))
         .route("/characters", get(get_characters))
@@ -138,13 +140,17 @@ async fn refresh(
 }
 
 #[debug_handler]
+async fn notifs(ws: WebSocketUpgrade) -> impl IntoResponse {
+    ws.on_upgrade(notifs::handle_notifs)
+}
+
+#[debug_handler]
 async fn get_client_config(
     TypedHeader(bearer): TypedHeader<Authorization<Bearer>>,
     State(app_state): State<AppState>,
 ) -> Result<(StatusCode, Json<GetClientConfigResponse>), AppError> {
     let aws_config = app_state.get_aws_config();
-    let secret = aws::get_jwt_secret(aws_config).await?;
-    auth::validate_user_access_token(bearer.token(), secret)?;
+    user::validate_user(aws_config, bearer.token()).await?;
 
     let response = GetClientConfigResponse {
         max_characters: app_state.get_client_config().max_characters,
@@ -159,14 +165,7 @@ async fn get_user(
     State(app_state): State<AppState>,
 ) -> Result<(StatusCode, Json<GetUserResponse>), AppError> {
     let aws_config = app_state.get_aws_config();
-    let secret = aws::get_jwt_secret(aws_config).await?;
-    let user_id = auth::validate_user_access_token(bearer.token(), secret)?;
-
-    info!("getting user for {} ...", user_id);
-
-    let user = aws::get_user(aws_config, user_id.parse()?)
-        .await?
-        .ok_or_else(|| anyhow::anyhow!("no such user"))?;
+    let user = user::get_user(aws_config, bearer.token()).await?;
 
     let response = GetUserResponse {
         user_id: user.get_user_id().clone(),
@@ -181,12 +180,7 @@ async fn get_characters(
     State(app_state): State<AppState>,
 ) -> Result<(StatusCode, Json<GetCharactersResponse>), AppError> {
     let aws_config = app_state.get_aws_config();
-    let secret = aws::get_jwt_secret(aws_config).await?;
-    let user_id = auth::validate_user_access_token(bearer.token(), secret)?;
-
-    let user = aws::get_user(aws_config, user_id.parse()?)
-        .await?
-        .ok_or_else(|| anyhow::anyhow!("no such user"))?;
+    let user = user::get_user(aws_config, bearer.token()).await?;
 
     info!("getting characters for {}", user.get_user_id());
 
@@ -203,12 +197,7 @@ async fn create_duel(
     Json(request): Json<CreateDuelRequest>,
 ) -> Result<(StatusCode, Json<CreateDuelResponse>), AppError> {
     let aws_config = app_state.get_aws_config();
-    let secret = aws::get_jwt_secret(aws_config).await?;
-    let user_id = auth::validate_user_access_token(bearer.token(), secret)?;
-
-    let user = aws::get_user(aws_config, user_id.parse()?)
-        .await?
-        .ok_or_else(|| anyhow::anyhow!("no such user"))?;
+    let user = user::get_user(aws_config, bearer.token()).await?;
 
     info!(
         "creating duel for {}:{}",
