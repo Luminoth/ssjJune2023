@@ -2,10 +2,11 @@ use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
 use bevy_tokio_tasks::TaskContext;
 use futures_lite::FutureExt;
+use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 
 use common::http::*;
 
-use crate::components::{client::main_menu::*, reqwest::*};
+use crate::components::{client::main_menu::*, notifs::*, reqwest::*};
 use crate::events::client::{auth::*, *};
 use crate::plugins::client::main_menu::*;
 use crate::resources::{client::auth::*, client::*, reqwest::*};
@@ -77,6 +78,16 @@ pub fn wait_for_auth(
     if let Some(event) = events.iter().next() {
         if event.0 {
             debug!("authentication success");
+
+            let mut notifs_request = "ws://localhost:3000/notifs".into_client_request().unwrap();
+            let headers = notifs_request.headers_mut();
+            headers.insert(
+                http::header::AUTHORIZATION,
+                format!("Bearer {}", authorization.get_access_token())
+                    .parse()
+                    .unwrap(),
+            );
+            commands.spawn(SubscribeNotifs(notifs_request));
 
             // TODO: move this to a User plugin, similar to the Auth plugin
 

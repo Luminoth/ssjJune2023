@@ -140,8 +140,17 @@ async fn refresh(
 }
 
 #[debug_handler]
-async fn notifs(ws: WebSocketUpgrade) -> impl IntoResponse {
-    ws.on_upgrade(notifs::handle_notifs)
+async fn notifs(
+    TypedHeader(bearer): TypedHeader<Authorization<Bearer>>,
+    State(app_state): State<AppState>,
+    ws: WebSocketUpgrade,
+) -> Result<impl IntoResponse, AppError> {
+    let aws_config = app_state.get_aws_config();
+    let user_id = user::validate_user(aws_config, bearer.token()).await?;
+
+    info!("{} subscribing to notifications ...", user_id);
+
+    Ok(ws.on_upgrade(notifs::handle_notifs))
 }
 
 #[debug_handler]
@@ -180,9 +189,9 @@ async fn get_characters(
     State(app_state): State<AppState>,
 ) -> Result<(StatusCode, Json<GetCharactersResponse>), AppError> {
     let aws_config = app_state.get_aws_config();
-    let user = user::get_user(aws_config, bearer.token()).await?;
+    let user_id = user::validate_user(aws_config, bearer.token()).await?;
 
-    info!("getting characters for {}", user.get_user_id());
+    info!("getting characters for {}", user_id);
 
     let response = GetCharactersResponse {
         // ...
@@ -197,18 +206,14 @@ async fn create_duel(
     Json(request): Json<CreateDuelRequest>,
 ) -> Result<(StatusCode, Json<CreateDuelResponse>), AppError> {
     let aws_config = app_state.get_aws_config();
-    let user = user::get_user(aws_config, bearer.token()).await?;
+    let user_id = user::validate_user(aws_config, bearer.token()).await?;
 
-    info!(
-        "creating duel for {}:{}",
-        user.get_user_id(),
-        request.character_id
-    );
+    info!("creating duel for {}:{}", user_id, request.character_id);
 
     let opponent_user_id = "1234";
     let opponent_character_id = Uuid::new_v4();
     let message = Message::new_duel(
-        user.get_user_id(),
+        user_id,
         request.character_id,
         opponent_user_id,
         opponent_character_id,

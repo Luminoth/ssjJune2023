@@ -122,6 +122,7 @@ fn main() {
         bevy_tokio_tasks::TokioTasksPlugin::default(),
         plugins::reqwest::ReqwestPlugin,
         plugins::hyper::HyperPlugin,
+        plugins::notifs::NotifsPlugin,
     ));
 
     // shared resources
