@@ -1,22 +1,28 @@
 use bevy::prelude::*;
 use bevy_tokio_tasks::TokioTasksRuntime;
 use futures_lite::future;
+use futures_util::stream::StreamExt;
 
 use crate::components::notifs::*;
 
 pub fn subscribe_notifs(
-    mut _commands: Commands,
-    requests: Query<(Entity, &SubscribeNotifs), Added<SubscribeNotifs>>,
-    _runtime: Res<TokioTasksRuntime>,
+    mut commands: Commands,
+    mut requests: Query<(Entity, &mut SubscribeNotifs), Added<SubscribeNotifs>>,
+    runtime: Res<TokioTasksRuntime>,
 ) {
-    for (_entity, _request) in requests.iter() {
-        /*let request = request.0.clone();
+    for (entity, mut request) in requests.iter_mut() {
+        if request.0.is_none() {
+            continue;
+        }
+
+        let request = request.0.take().unwrap();
         let uri = request.uri().clone();
         let task = runtime.spawn_background_task(|mut ctx| async move {
+            let uri = request.uri().clone();
             let (stream, _) = tokio_tungstenite::connect_async(request).await?;
 
             ctx.run_on_main_thread(move |ctx| {
-                ctx.world.spawn(ListenNotifs((uri, stream)));
+                ctx.world.spawn(ListenNotifs((uri, Some(stream))));
             })
             .await;
 
@@ -26,7 +32,7 @@ pub fn subscribe_notifs(
         commands
             .entity(entity)
             .insert(SubscribeNotifsTask((uri, task)))
-            .remove::<SubscribeNotifs>();*/
+            .remove::<SubscribeNotifs>();
     }
 }
 
@@ -42,7 +48,7 @@ pub fn poll_subscribe_notifs(
             // TODO: error handling
             response.unwrap();
 
-            debug!("subscribed to notifs from {}", task.0 .0);
+            debug!("subscribed to notifications from {}", task.0 .0);
 
             commands.entity(entity).despawn();
         }
@@ -51,13 +57,19 @@ pub fn poll_subscribe_notifs(
 
 pub fn listen_notifs(
     mut commands: Commands,
-    requests: Query<(Entity, &ListenNotifs), Added<ListenNotifs>>,
+    mut requests: Query<(Entity, &mut ListenNotifs), Added<ListenNotifs>>,
     runtime: Res<TokioTasksRuntime>,
 ) {
-    for (entity, request) in requests.iter() {
-        //let stream = request.0 .1.clone();
+    for (entity, mut request) in requests.iter_mut() {
+        let uri = request.0 .0.clone();
+        let stream = request.0 .1.take().unwrap();
         let task = runtime.spawn_background_task(|_ctx| async move {
-            // TODO: forever await the stream
+            let (_, mut read) = stream.split();
+            while let Some(Ok(msg)) = read.next().await {
+                info!("got notification from {}: {}", uri, msg);
+            }
+
+            warn!("{} notifications connection closed", uri);
 
             Ok(())
         });
@@ -81,7 +93,7 @@ pub fn poll_listen_notifs(
             // TODO: error handling
             response.unwrap();
 
-            debug!("unsubscribed from notifs from {}", task.0 .0);
+            debug!("unsubscribed from notifications from {}", task.0 .0);
 
             commands.entity(entity).despawn();
         }

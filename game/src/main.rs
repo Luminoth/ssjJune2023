@@ -2,6 +2,7 @@
 
 // https://github.com/bevyengine/bevy/blob/v0.10.0/examples/games/game_menu.rs
 
+mod backend;
 mod components;
 mod cooldown;
 mod events;

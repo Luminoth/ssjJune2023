@@ -150,7 +150,7 @@ async fn notifs(
 
     info!("{} subscribing to notifications ...", user_id);
 
-    Ok(ws.on_upgrade(notifs::handle_notifs))
+    Ok(ws.on_upgrade(|socket| notifs::handle_notifs(socket, user_id)))
 }
 
 #[debug_handler]
