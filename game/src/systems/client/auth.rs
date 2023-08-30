@@ -230,7 +230,7 @@ async fn auth_response_handler(resp: Result<bytes::Bytes, reqwest::Error>, mut c
                 ctx.world
                     .get_resource_mut::<AuthenticationError>()
                     .unwrap()
-                    .0 = Some("http error".to_owned());
+                    .0 = Some("Connection error".to_owned());
                 ctx.world.send_event(AuthenticationResult(false));
             }
         }
@@ -304,7 +304,10 @@ pub fn refresh_auth_listener(
                     &mut auth_state,
                     authorization.get_refresh_token(),
                 );
+                return;
             }
+
+            auth_result_events.send(AuthenticationResult(true));
         }
         AuthenticationState::WaitForAuthorization
         | AuthenticationState::WaitForAuthentication

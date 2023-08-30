@@ -20,6 +20,7 @@ pub fn subscribe_notifs(
         let uri = request.uri().clone();
         let task = runtime.spawn_background_task(|mut ctx| async move {
             let uri = request.uri().clone();
+            info!("subscribing to notifications from {}", uri);
 
             // TODO: error handle this (if it fails, send a NotifsSubscribeResult event)
             let (stream, _) = tokio_tungstenite::connect_async(request).await?;
@@ -46,15 +47,21 @@ pub fn poll_subscribe_notifs(
 ) {
     for (entity, mut task) in tasks.iter_mut() {
         if let Some(response) = future::block_on(future::poll_once(&mut task.0 .1)) {
+            let uri = &task.0 .0;
+
             // TODO: error handling
             let response = response.unwrap();
 
-            // TODO: error handling
-            response.unwrap();
-
-            notifs_subscribed_events.send(NotifsSubscribeResult((task.0 .0.clone(), true)));
-
-            debug!("subscribed to notifications from {}", task.0 .0);
+            match response {
+                Ok(_) => {
+                    debug!("subscribed to notifications from {}", uri);
+                    notifs_subscribed_events.send(NotifsSubscribeResult((uri.clone(), true)));
+                }
+                Err(e) => {
+                    warn!("failed to subscribe to notifications from {}: {}", uri, e);
+                    notifs_subscribed_events.send(NotifsSubscribeResult((uri.clone(), false)));
+                }
+            }
 
             commands.entity(entity).despawn();
         }
@@ -73,7 +80,7 @@ pub fn listen_notifs(
             let (_, mut read) = stream.split();
             while let Some(Ok(msg)) = read.next().await {
                 let uri = uri.clone();
-                info!("got notification from {}: {}", uri, msg);
+                debug!("got notification from {}: {}", uri, msg);
                 ctx.run_on_main_thread(move |ctx| {
                     ctx.world.send_event(Notification((uri, msg)));
                 })

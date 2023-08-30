@@ -90,7 +90,14 @@ fn main() {
             plugins::client::character_select::CharacterSelectPlugin,
         ));
 
-        app.add_systems(Startup, setup);
+        app.add_systems(Startup, setup).add_systems(
+            Update,
+            (
+                systems::client::notifs::notifications_subscribe_handler,
+                systems::client::notifs::notifications_disconnected_handler,
+                systems::client::notifs::notification_handler,
+            ),
+        );
     }
 
     #[cfg(feature = "server")]

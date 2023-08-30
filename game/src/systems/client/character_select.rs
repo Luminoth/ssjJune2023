@@ -65,8 +65,10 @@ async fn characters_response_handler(
     .await
 }
 
-pub fn exit() {
+pub fn exit(mut character_select_state: ResMut<NextState<CharacterSelectState>>) {
     info!("exiting CharacterSelect state");
+
+    character_select_state.set(CharacterSelectState::Init);
 }
 
 pub fn wait_for_characters(
@@ -78,7 +80,7 @@ pub fn wait_for_characters(
         ui.label("Retrieving characters ...");
     });
 
-    if events.iter().next().is_some() {
+    if !events.is_empty() {
         info!("retrieved characters: {:?}", "TODO");
 
         character_select_state.set(CharacterSelectState::WaitForCharacterSelect);

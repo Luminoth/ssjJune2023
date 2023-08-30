@@ -21,8 +21,10 @@ pub fn enter(mut commands: Commands, mut main_menu_state: ResMut<NextState<MainM
     main_menu_state.set(MainMenuState::WaitForLogin);
 }
 
-pub fn exit() {
+pub fn exit(mut main_menu_state: ResMut<NextState<MainMenuState>>) {
     info!("exiting MainMenu state");
+
+    main_menu_state.set(MainMenuState::Init);
 }
 
 pub fn wait_for_login(
@@ -128,7 +130,7 @@ async fn user_response_handler(resp: Result<bytes::Bytes, reqwest::Error>, mut c
                 ctx.world
                     .get_resource_mut::<AuthenticationError>()
                     .unwrap()
-                    .0 = Some("http error".to_owned());
+                    .0 = Some("Connection error".to_owned());
 
                 // TODO: this isn't right
                 ctx.world.send_event(AuthenticationResult(false));
@@ -141,7 +143,6 @@ async fn user_response_handler(resp: Result<bytes::Bytes, reqwest::Error>, mut c
 pub fn wait_for_user(
     mut events: EventReader<UserUpdated>,
     user: Res<User>,
-    mut main_menu_state: ResMut<NextState<MainMenuState>>,
     mut game_state: ResMut<NextState<GameState>>,
     mut contexts: EguiContexts,
 ) {
@@ -149,12 +150,10 @@ pub fn wait_for_user(
         ui.label("Retrieving user ...");
     });
 
-    if events.iter().next().is_some() {
+    if !events.is_empty() {
         info!("retrieved user: {:?}", user);
 
         game_state.set(GameState::CharacterSelect);
-
-        main_menu_state.set(MainMenuState::Init);
     }
 
     events.clear();
