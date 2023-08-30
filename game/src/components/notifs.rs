@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-
 use http::uri::Uri;
 use tokio::net::TcpStream;
 use tokio::task;
